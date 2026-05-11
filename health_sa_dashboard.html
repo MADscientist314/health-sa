@@ -136,6 +136,51 @@
       white-space: nowrap;
     }
 
+    /* ── Enter Data Button ── */
+    .btn-enter-data {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 7px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+      box-shadow: 0 2px 6px rgba(42,157,143,0.4);
+      white-space: nowrap;
+    }
+    .btn-enter-data:hover {
+      background: #238a7d;
+      box-shadow: 0 3px 10px rgba(42,157,143,0.5);
+    }
+    .btn-enter-data:active {
+      transform: scale(0.97);
+    }
+
+    /* ── Data Source Badge ── */
+    .data-source-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 9px;
+      border-radius: 20px;
+      white-space: nowrap;
+    }
+    .data-source-badge.using-yours {
+      background: rgba(40,167,69,0.2);
+      color: #a8f0bb;
+    }
+    .data-source-badge.using-sample {
+      background: rgba(255,255,255,0.1);
+      color: var(--text-muted-dark);
+    }
+
     /* ── KPI Row ── */
     .kpi-row {
       display: grid;
@@ -385,6 +430,765 @@
       .header-controls { display: none; }
       .card, .kpi-card, .table-card { box-shadow: none; border: 1px solid var(--border); }
     }
+
+    /* ── AI Panel ── */
+    .ai-panel {
+      margin-bottom: var(--gap);
+      padding: 0;
+      overflow: hidden;
+    }
+
+    .ai-panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 22px 16px;
+      border-bottom: 1px solid var(--border);
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .ai-panel-title-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .ai-icon {
+      width: 34px;
+      height: 34px;
+      background: linear-gradient(135deg, var(--accent), #1a7a6f);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .ai-icon svg {
+      width: 18px;
+      height: 18px;
+      fill: #fff;
+    }
+
+    .ai-panel-title-group .card-title {
+      margin-bottom: 2px;
+    }
+
+    /* ── API Key Section ── */
+    .ai-key-section {
+      border-bottom: 1px solid var(--border);
+    }
+
+    .ai-key-toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 11px 22px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      user-select: none;
+      background: none;
+      border: none;
+      width: 100%;
+      text-align: left;
+      transition: color 0.15s;
+    }
+
+    .ai-key-toggle:hover {
+      color: var(--text-primary);
+    }
+
+    .ai-key-toggle-arrow {
+      display: inline-block;
+      transition: transform 0.2s;
+      font-size: 10px;
+      margin-left: auto;
+    }
+
+    .ai-key-toggle.open .ai-key-toggle-arrow {
+      transform: rotate(180deg);
+    }
+
+    .ai-key-body {
+      display: none;
+      padding: 0 22px 16px;
+      animation: ai-fade-in 0.15s ease;
+    }
+
+    .ai-key-body.open {
+      display: block;
+    }
+
+    .ai-key-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .ai-key-input {
+      flex: 1;
+      min-width: 220px;
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 13px;
+      color: var(--text-primary);
+      background: var(--bg-body);
+      outline: none;
+      font-family: monospace;
+      transition: border-color 0.15s;
+    }
+
+    .ai-key-input:focus {
+      border-color: var(--accent);
+      background: #fff;
+    }
+
+    .ai-key-save-btn {
+      padding: 8px 16px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.15s, transform 0.1s;
+    }
+
+    .ai-key-save-btn:hover {
+      background: #238a7d;
+    }
+
+    .ai-key-save-btn:active {
+      transform: scale(0.97);
+    }
+
+    .ai-key-note {
+      font-size: 11px;
+      color: var(--text-secondary);
+      margin-top: 8px;
+      display: flex;
+      align-items: flex-start;
+      gap: 5px;
+    }
+
+    .ai-key-note svg {
+      width: 12px;
+      height: 12px;
+      flex-shrink: 0;
+      margin-top: 1px;
+      fill: var(--text-secondary);
+    }
+
+    .ai-key-saved-indicator {
+      font-size: 12px;
+      color: var(--color-optimal);
+      font-weight: 600;
+      display: none;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .ai-key-saved-indicator.visible {
+      display: inline-flex;
+    }
+
+    /* ── Generate Button ── */
+    .ai-actions {
+      padding: 18px 22px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .ai-generate-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 11px 22px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+      box-shadow: 0 2px 6px rgba(42,157,143,0.35);
+      white-space: nowrap;
+    }
+
+    .ai-generate-btn:hover:not(:disabled) {
+      background: #238a7d;
+      box-shadow: 0 3px 10px rgba(42,157,143,0.45);
+    }
+
+    .ai-generate-btn:active:not(:disabled) {
+      transform: scale(0.97);
+    }
+
+    .ai-generate-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .ai-generate-btn svg {
+      width: 16px;
+      height: 16px;
+      fill: #fff;
+      flex-shrink: 0;
+    }
+
+    .ai-status-text {
+      font-size: 12px;
+      color: var(--text-secondary);
+      font-style: italic;
+    }
+
+    /* ── Results Panel ── */
+    .ai-results {
+      padding: 0 22px;
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.4s ease, padding 0.3s;
+    }
+
+    .ai-results.open {
+      max-height: 3000px;
+      padding: 20px 22px;
+    }
+
+    /* ── Loading State ── */
+    .ai-loading {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      color: var(--text-secondary);
+      font-size: 13px;
+      padding: 12px 0;
+    }
+
+    .ai-loading.visible {
+      display: flex;
+    }
+
+    .ai-spinner {
+      width: 18px;
+      height: 18px;
+      border: 2.5px solid var(--accent-light);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: ai-spin 0.7s linear infinite;
+      flex-shrink: 0;
+    }
+
+    @keyframes ai-spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* ── Markdown-like Output ── */
+    .ai-output {
+      display: none;
+      font-size: 13.5px;
+      line-height: 1.65;
+      color: var(--text-primary);
+    }
+
+    .ai-output.visible {
+      display: block;
+    }
+
+    .ai-output h2 {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin: 16px 0 6px;
+      padding-bottom: 4px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .ai-output h2:first-child {
+      margin-top: 0;
+    }
+
+    .ai-output h3 {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--accent);
+      margin: 12px 0 4px;
+    }
+
+    .ai-output ul, .ai-output ol {
+      margin: 6px 0 10px 18px;
+    }
+
+    .ai-output li {
+      margin-bottom: 4px;
+    }
+
+    .ai-output p {
+      margin: 0 0 10px;
+    }
+
+    .ai-output strong {
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .ai-output em {
+      font-style: italic;
+      color: var(--text-secondary);
+    }
+
+    .ai-output .ai-disclaimer {
+      margin-top: 16px;
+      padding: 10px 14px;
+      background: var(--color-good-bg);
+      border-left: 3px solid var(--color-good);
+      border-radius: 0 6px 6px 0;
+      font-size: 12px;
+      color: #6c5600;
+    }
+
+    .ai-output .ai-cursor {
+      display: inline-block;
+      width: 2px;
+      height: 1em;
+      background: var(--accent);
+      margin-left: 2px;
+      vertical-align: middle;
+      animation: ai-blink 0.8s step-end infinite;
+    }
+
+    @keyframes ai-blink {
+      50% { opacity: 0; }
+    }
+
+    /* ── Error Message ── */
+    .ai-error {
+      display: none;
+      padding: 12px 14px;
+      background: var(--color-attention-bg);
+      border-left: 3px solid var(--color-attention);
+      border-radius: 0 6px 6px 0;
+      font-size: 13px;
+      color: #721c24;
+      margin: 10px 0;
+    }
+
+    .ai-error.visible {
+      display: block;
+    }
+
+    /* ── Chat Section ── */
+    .ai-chat-section {
+      display: none;
+      border-top: 1px solid var(--border);
+      padding: 16px 22px;
+      animation: ai-fade-in 0.25s ease;
+    }
+
+    .ai-chat-section.visible {
+      display: block;
+    }
+
+    .ai-chat-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-secondary);
+      margin-bottom: 10px;
+    }
+
+    .ai-chat-history {
+      max-height: 280px;
+      overflow-y: auto;
+      margin-bottom: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      scroll-behavior: smooth;
+    }
+
+    .ai-chat-bubble {
+      padding: 9px 13px;
+      border-radius: 10px;
+      font-size: 13px;
+      line-height: 1.55;
+      max-width: 88%;
+    }
+
+    .ai-chat-bubble.user {
+      background: var(--accent);
+      color: #fff;
+      align-self: flex-end;
+      border-bottom-right-radius: 3px;
+    }
+
+    .ai-chat-bubble.assistant {
+      background: var(--bg-body);
+      color: var(--text-primary);
+      align-self: flex-start;
+      border-bottom-left-radius: 3px;
+      border: 1px solid var(--border);
+    }
+
+    .ai-chat-bubble.assistant.streaming {
+      border-color: var(--accent);
+    }
+
+    .ai-chat-input-row {
+      display: flex;
+      gap: 8px;
+      align-items: flex-end;
+    }
+
+    .ai-chat-input {
+      flex: 1;
+      padding: 9px 13px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 13px;
+      font-family: inherit;
+      color: var(--text-primary);
+      background: var(--bg-body);
+      resize: none;
+      outline: none;
+      min-height: 38px;
+      max-height: 100px;
+      transition: border-color 0.15s, background 0.15s;
+      line-height: 1.4;
+    }
+
+    .ai-chat-input:focus {
+      border-color: var(--accent);
+      background: #fff;
+    }
+
+    .ai-chat-send-btn {
+      padding: 9px 16px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+      white-space: nowrap;
+      height: 38px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .ai-chat-send-btn:hover:not(:disabled) {
+      background: #238a7d;
+    }
+
+    .ai-chat-send-btn:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    .ai-chat-send-btn svg {
+      width: 14px;
+      height: 14px;
+      fill: #fff;
+    }
+
+    @keyframes ai-fade-in {
+      from { opacity: 0; transform: translateY(4px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Data Entry Modal ── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      backdrop-filter: blur(3px);
+      z-index: 1000;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 24px 16px;
+      overflow-y: auto;
+    }
+    .modal-overlay.open {
+      display: flex;
+    }
+    .modal-container {
+      background: var(--bg-card);
+      border-radius: 12px;
+      width: 100%;
+      max-width: 760px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+      animation: modal-slide-in 0.22s ease;
+      margin: auto;
+    }
+    @keyframes modal-slide-in {
+      from { opacity: 0; transform: translateY(-16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 24px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .modal-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+    .modal-subtitle {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-top: 2px;
+    }
+    .modal-close-btn {
+      width: 32px;
+      height: 32px;
+      border: none;
+      background: var(--bg-body);
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 18px;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: background 0.15s, color 0.15s;
+    }
+    .modal-close-btn:hover {
+      background: var(--color-attention-bg);
+      color: var(--color-attention);
+    }
+    .modal-meta {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      padding: 18px 24px 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    .modal-field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .modal-field-group label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-secondary);
+    }
+    .modal-field-group input[type="text"],
+    .modal-field-group input[type="date"] {
+      padding: 8px 11px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 13px;
+      color: var(--text-primary);
+      background: var(--bg-body);
+      outline: none;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .modal-field-group input:focus {
+      border-color: var(--accent);
+      background: #fff;
+    }
+    /* Tabs */
+    .modal-tabs {
+      display: flex;
+      gap: 0;
+      border-bottom: 2px solid var(--border);
+      padding: 0 24px;
+      overflow-x: auto;
+    }
+    .modal-tab-btn {
+      padding: 10px 16px;
+      border: none;
+      background: none;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      white-space: nowrap;
+      transition: color 0.15s;
+    }
+    .modal-tab-btn.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+    .modal-tab-btn:hover:not(.active) {
+      color: var(--text-primary);
+    }
+    /* Tab panels */
+    .modal-tab-panel {
+      display: none;
+      padding: 20px 24px;
+    }
+    .modal-tab-panel.active {
+      display: block;
+    }
+    /* Input grid */
+    .modal-inputs-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .modal-input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .modal-input-group label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    .modal-input-group input[type="number"] {
+      padding: 8px 11px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 13px;
+      color: var(--text-primary);
+      background: var(--bg-body);
+      outline: none;
+      transition: border-color 0.15s, background 0.15s;
+      -moz-appearance: textfield;
+    }
+    .modal-input-group input[type="number"]::-webkit-outer-spin-button,
+    .modal-input-group input[type="number"]::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+    }
+    .modal-input-group input[type="number"]:focus {
+      border-color: var(--accent);
+      background: #fff;
+    }
+    .modal-input-group input[type="number"].has-value {
+      border-color: var(--accent);
+      background: #f0faf9;
+    }
+    .modal-input-hint {
+      font-size: 10px;
+      color: var(--text-secondary);
+    }
+    /* Paste tab */
+    .modal-paste-area {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .modal-paste-area label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    .modal-paste-textarea {
+      width: 100%;
+      min-height: 180px;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 12px;
+      font-family: monospace;
+      color: var(--text-primary);
+      background: var(--bg-body);
+      resize: vertical;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .modal-paste-textarea:focus {
+      border-color: var(--accent);
+      background: #fff;
+    }
+    .btn-parse {
+      padding: 9px 18px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 7px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      align-self: flex-start;
+      transition: background 0.15s;
+    }
+    .btn-parse:hover { background: #238a7d; }
+    .parse-result-msg {
+      font-size: 12px;
+      color: var(--color-optimal);
+      font-weight: 600;
+      min-height: 18px;
+    }
+    /* Modal footer */
+    .modal-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 16px 24px 20px;
+      border-top: 1px solid var(--border);
+      flex-wrap: wrap;
+    }
+    .modal-footer-left { display: flex; gap: 10px; flex-wrap: wrap; }
+    .btn-save {
+      padding: 10px 22px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 7px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-save:hover { background: #238a7d; }
+    .btn-cancel {
+      padding: 10px 18px;
+      background: var(--bg-body);
+      color: var(--text-secondary);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-cancel:hover { background: #e9ecef; }
+    .btn-reset {
+      padding: 10px 18px;
+      background: none;
+      color: var(--color-attention);
+      border: 1px solid var(--color-attention-bg);
+      border-radius: 7px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-reset:hover { background: var(--color-attention-bg); }
+
+    @media (max-width: 600px) {
+      .modal-meta { grid-template-columns: 1fr; }
+      .modal-inputs-grid { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 <body>
@@ -417,6 +1221,11 @@
           <option value="3">3 Months</option>
         </select>
       </div>
+      <button class="btn-enter-data" onclick="dataEntry.openModal()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        Enter My Data
+      </button>
+      <span id="data-source-badge" class="data-source-badge using-sample">Using sample data</span>
       <div class="as-of">Last updated: <strong id="as-of-date" style="color:#fff;"></strong></div>
     </div>
   </header>
@@ -500,22 +1309,153 @@
     <table class="biomarker-table" id="biomarker-table">
       <thead>
         <tr>
-          <th data-col="category">Domain <span class="sort-arrow">↕</span></th>
-          <th data-col="marker">Marker <span class="sort-arrow">↕</span></th>
-          <th data-col="current">Current <span class="sort-arrow">↕</span></th>
-          <th data-col="optimal_range">Optimal Zone <span class="sort-arrow">↕</span></th>
-          <th data-col="status">Status <span class="sort-arrow">↕</span></th>
-          <th data-col="trend">Trend <span class="sort-arrow">↕</span></th>
-          <th data-col="note">Clinical Note <span class="sort-arrow">↕</span></th>
+          <th data-col="category">Domain <span class="sort-arrow">&#8597;</span></th>
+          <th data-col="marker">Marker <span class="sort-arrow">&#8597;</span></th>
+          <th data-col="current">Current <span class="sort-arrow">&#8597;</span></th>
+          <th data-col="optimal_range">Optimal Zone <span class="sort-arrow">&#8597;</span></th>
+          <th data-col="status">Status <span class="sort-arrow">&#8597;</span></th>
+          <th data-col="trend">Trend <span class="sort-arrow">&#8597;</span></th>
+          <th data-col="note">Clinical Note <span class="sort-arrow">&#8597;</span></th>
         </tr>
       </thead>
       <tbody id="table-body"></tbody>
     </table>
   </div>
 
+  <!-- AI Analysis Panel -->
+  <div class="ai-panel card">
+
+    <!-- Panel Header -->
+    <div class="ai-panel-header">
+      <div class="ai-panel-title-group">
+        <div class="ai-icon">
+          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/>
+          </svg>
+        </div>
+        <div>
+          <div class="card-title">AI Health Analysis</div>
+          <div class="card-subtitle" style="margin-bottom:0">Powered by Claude &mdash; educational insights, not medical advice</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- API Key Setup (collapsible) -->
+    <div class="ai-key-section">
+      <button class="ai-key-toggle" id="aiKeyToggle" onclick="aiPanel.toggleKeySection()" aria-expanded="false">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink:0">
+          <path d="M12 1C8.676 1 6 3.676 6 7c0 2.09.963 3.96 2.47 5.207L3 18.586 3.414 19H7v2h2v2h6v-4.586l3.53-3.53A6 6 0 0012 1zm0 2a4 4 0 110 8 4 4 0 010-8zm0 1.5a2.5 2.5 0 100 5 2.5 2.5 0 000-5z"/>
+        </svg>
+        Anthropic API Key
+        <span id="aiKeySavedIndicator" class="ai-key-saved-indicator" style="font-size:11px;margin-left:8px;">
+          &#10003; Saved
+        </span>
+        <span class="ai-key-toggle-arrow">&#9660;</span>
+      </button>
+      <div class="ai-key-body" id="aiKeyBody">
+        <div class="ai-key-row">
+          <input
+            type="password"
+            class="ai-key-input"
+            id="aiKeyInput"
+            placeholder="sk-ant-..."
+            autocomplete="off"
+            spellcheck="false"
+          />
+          <button class="ai-key-save-btn" onclick="aiPanel.saveKey()">Save Key</button>
+        </div>
+        <div class="ai-key-note">
+          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+          </svg>
+          Your key is stored locally only in your browser and is never sent anywhere except directly to Anthropic's API.
+        </div>
+      </div>
+    </div>
+
+    <!-- Generate Button -->
+    <div class="ai-actions">
+      <button class="ai-generate-btn" id="aiGenerateBtn" onclick="aiPanel.generateAnalysis()">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/>
+        </svg>
+        Generate My Health Analysis
+      </button>
+      <span class="ai-status-text" id="aiStatusText"></span>
+    </div>
+
+    <!-- Results Area -->
+    <div class="ai-results" id="aiResults">
+      <div class="ai-loading" id="aiLoading">
+        <div class="ai-spinner"></div>
+        <span id="aiLoadingText">Analyzing your biomarkers...</span>
+      </div>
+      <div class="ai-error" id="aiError"></div>
+      <div class="ai-output" id="aiOutput"></div>
+    </div>
+
+    <!-- Follow-up Chat -->
+    <div class="ai-chat-section" id="aiChatSection">
+      <div class="ai-chat-label">Follow-up Questions</div>
+      <div class="ai-chat-history" id="aiChatHistory"></div>
+      <div class="ai-chat-input-row">
+        <textarea
+          class="ai-chat-input"
+          id="aiChatInput"
+          placeholder="Ask a follow-up question about your results..."
+          rows="1"
+          onkeydown="aiPanel.chatKeydown(event)"
+          oninput="aiPanel.autoResizeChat(this)"
+        ></textarea>
+        <button class="ai-chat-send-btn" id="aiChatSendBtn" onclick="aiPanel.sendChat()">
+          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M2 21L23 12 2 3v7l15 2-15 2v7z"/>
+          </svg>
+          Send
+        </button>
+      </div>
+    </div>
+
+  </div>
+
   <footer class="footer">
     Health SA &mdash; Healthspan Command Center &bull; Sample data for demonstration purposes &bull; Not a substitute for clinical care
   </footer>
+</div>
+
+<!-- ── Data Entry Modal ── -->
+<div class="modal-overlay" id="data-entry-modal" onclick="dataEntry.handleOverlayClick(event)">
+  <div class="modal-container" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="modal-title">Enter Your Lab Data</div>
+        <div class="modal-subtitle">Values you enter will update the dashboard in real time</div>
+      </div>
+      <button class="modal-close-btn" onclick="dataEntry.closeModal()" aria-label="Close">&times;</button>
+    </div>
+
+    <div class="modal-meta">
+      <div class="modal-field-group">
+        <label for="patient-name">Patient Name</label>
+        <input type="text" id="patient-name" placeholder="e.g. Jane Smith">
+      </div>
+      <div class="modal-field-group">
+        <label for="lab-date">Last Lab Date</label>
+        <input type="date" id="lab-date">
+      </div>
+    </div>
+
+    <div class="modal-tabs" id="modal-tabs"></div>
+    <div id="modal-tab-panels"></div>
+
+    <div class="modal-footer">
+      <div class="modal-footer-left">
+        <button class="btn-save" onclick="dataEntry.saveData()">Save &amp; Update Dashboard</button>
+        <button class="btn-cancel" onclick="dataEntry.closeModal()">Cancel</button>
+      </div>
+      <button class="btn-reset" onclick="dataEntry.resetToSample()">Reset to Sample Data</button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -531,6 +1471,32 @@ const TREND_DATA = {
   hba1c:        { label: 'HbA1c (% × 10)',          color: '#2a9d8f', data6: [55,54,54,53,53,53],  data3: [53,53,53],  optimalLine: 53 },
   hrv:          { label: 'HRV (ms)',                color: '#f4a261', data6: [58,61,65,68,70,72],  data3: [68,70,72],  optimalLine: 70 },
 };
+
+// BIOMARKER_DEFS: stable id fields for form binding (mirrors BIOMARKERS order)
+const BIOMARKER_DEFS = [
+  { id: 'apob',               tab: 'Cardiovascular', label: 'ApoB',               unit: 'mg/dL',      sample: 82,   hint: 'Optimal ≤ 70' },
+  { id: 'ldl_c',              tab: 'Cardiovascular', label: 'LDL-C',              unit: 'mg/dL',      sample: 105,  hint: 'Optimal ≤ 70' },
+  { id: 'hdl_c',              tab: 'Cardiovascular', label: 'HDL-C',              unit: 'mg/dL',      sample: 62,   hint: 'Optimal ≥ 60' },
+  { id: 'triglycerides',      tab: 'Cardiovascular', label: 'Triglycerides',      unit: 'mg/dL',      sample: 88,   hint: 'Optimal ≤ 80' },
+  { id: 'hscrp',              tab: 'Cardiovascular', label: 'hsCRP',              unit: 'mg/L',       sample: 0.8,  hint: 'Optimal ≤ 1.0' },
+  { id: 'lp_a',               tab: 'Cardiovascular', label: 'Lp(a)',              unit: 'nmol/L',     sample: 28,   hint: 'Optimal ≤ 75' },
+  { id: 'total_testosterone', tab: 'Hormonal',       label: 'Total Testosterone', unit: 'ng/dL',      sample: 620,  hint: 'Optimal 700–1000' },
+  { id: 'free_testosterone',  tab: 'Hormonal',       label: 'Free Testosterone',  unit: 'pg/mL',      sample: 14.2, hint: 'Optimal 15–25' },
+  { id: 'dhea_s',             tab: 'Hormonal',       label: 'DHEA-S',             unit: 'µg/dL',      sample: 285,  hint: 'Optimal 300–500' },
+  { id: 'cortisol_am',        tab: 'Hormonal',       label: 'Cortisol (AM)',      unit: 'µg/dL',      sample: 16,   hint: 'Optimal 10–18' },
+  { id: 'free_t3',            tab: 'Hormonal',       label: 'Free T3',            unit: 'pg/mL',      sample: 3.4,  hint: 'Optimal 3.2–4.2' },
+  { id: 'igf1',               tab: 'Hormonal',       label: 'IGF-1',              unit: 'ng/mL',      sample: 168,  hint: 'Optimal 150–220' },
+  { id: 'hba1c',              tab: 'Metabolic',      label: 'HbA1c',              unit: '%',          sample: 5.3,  hint: 'Optimal ≤ 5.3' },
+  { id: 'fasting_insulin',    tab: 'Metabolic',      label: 'Fasting Insulin',    unit: 'µIU/mL',     sample: 6.2,  hint: 'Optimal ≤ 5' },
+  { id: 'fasting_glucose',    tab: 'Metabolic',      label: 'Fasting Glucose',    unit: 'mg/dL',      sample: 89,   hint: 'Optimal 70–90' },
+  { id: 'homa_ir',            tab: 'Metabolic',      label: 'HOMA-IR',            unit: 'index',      sample: 1.38, hint: 'Optimal ≤ 1.0' },
+  { id: 'uric_acid',          tab: 'Metabolic',      label: 'Uric Acid',          unit: 'mg/dL',      sample: 5.2,  hint: 'Optimal 3.0–5.5' },
+  { id: 'vo2_max',            tab: 'Performance',    label: 'VO2 Max',            unit: 'mL/kg/min',  sample: 48,   hint: 'Optimal ≥ 50' },
+  { id: 'resting_hr',         tab: 'Performance',    label: 'Resting HR',         unit: 'bpm',        sample: 52,   hint: 'Optimal 40–55' },
+  { id: 'hrv_avg',            tab: 'Performance',    label: 'HRV (avg 30d)',      unit: 'ms',         sample: 72,   hint: 'Optimal ≥ 70' },
+  { id: 'sleep_score',        tab: 'Performance',    label: 'Sleep Score',        unit: '/100',       sample: 76,   hint: 'Optimal ≥ 80' },
+  { id: 'body_fat_pct',       tab: 'Performance',    label: 'Body Fat %',         unit: '%',          sample: 18,   hint: 'Optimal 10–16' },
+];
 
 const BIOMARKERS = [
   // Cardiovascular
@@ -583,10 +1549,6 @@ const PRIORITIES = [
   { label: 'Reduce Fasting Insulin',       impact: 65, action: 'Time-restricted eating (16:8), reduce refined carbs' },
 ];
 
-const DOMAIN_SCORES = { overall: 78, cardio: 85, hormonal: 71, perf: 82 };
-
-const RADAR_DATA = [88, 71, 76, 82, 79]; // Cardio, Hormonal, Metabolic, Sleep/Recovery, Fitness
-
 // ─── STATUS HELPERS ──────────────────────────────────────────────────────────
 
 function getStatus(bm) {
@@ -622,6 +1584,23 @@ function categoryBadgeClass(cat) {
   return { Cardiovascular:'cardio', Hormonal:'hormonal', Metabolic:'metabolic', Performance:'performance' }[cat] || '';
 }
 
+// ─── SCORE COMPUTATION ────────────────────────────────────────────────────────
+
+function computeScores() {
+  const statusPts = { optimal: 100, good: 70, attention: 30 };
+  const domains = { Cardiovascular: [], Hormonal: [], Metabolic: [], Performance: [] };
+  BIOMARKERS.forEach(bm => {
+    const pts = statusPts[getStatus(bm)] || 30;
+    if (domains[bm.category]) domains[bm.category].push(pts);
+  });
+  const avg = arr => Math.round(arr.reduce((a,b) => a+b, 0) / arr.length);
+  const cardio   = avg(domains.Cardiovascular);
+  const hormonal = avg([...domains.Hormonal, ...domains.Metabolic]);
+  const perf     = avg(domains.Performance);
+  const overall  = avg([cardio, hormonal, perf]);
+  return { overall, cardio, hormonal, perf };
+}
+
 // ─── DASHBOARD CLASS ─────────────────────────────────────────────────────────
 
 class Dashboard {
@@ -653,10 +1632,16 @@ class Dashboard {
     this.renderTable();
   }
 
+  refreshAll() {
+    this.renderKPIs();
+    this.updateRadarChart();
+    this.renderTable();
+  }
+
   // ── KPIs ──
 
   renderKPIs() {
-    const scores = DOMAIN_SCORES;
+    const scores = computeScores();
     this._setKPI('overall', scores.overall, 'all domains');
     this._setKPI('cardio',  scores.cardio,  'Cardiovascular');
     this._setKPI('hormonal',scores.hormonal,'Hormonal & Metabolic');
@@ -725,13 +1710,14 @@ class Dashboard {
 
   renderRadarChart() {
     const ctx = document.getElementById('chart-radar').getContext('2d');
+    const radarVals = this._computeRadarData();
     this.charts.radar = new Chart(ctx, {
       type: 'radar',
       data: {
         labels: ['Cardiovascular', 'Hormonal', 'Metabolic', 'Sleep / Recovery', 'Fitness'],
         datasets: [{
           label: 'Current Score',
-          data: RADAR_DATA,
+          data: radarVals,
           borderColor: '#2a9d8f',
           backgroundColor: 'rgba(42,157,143,0.15)',
           borderWidth: 2,
@@ -764,6 +1750,32 @@ class Dashboard {
         }
       }
     });
+  }
+
+  _computeRadarData() {
+    const statusPts = { optimal: 100, good: 70, attention: 30 };
+    const avg = arr => arr.length ? Math.round(arr.reduce((a,b) => a+b,0)/arr.length) : 50;
+    const cats = { Cardiovascular:[], Hormonal:[], Metabolic:[], Performance:[] };
+    BIOMARKERS.forEach(bm => {
+      const pts = statusPts[getStatus(bm)] || 30;
+      if (cats[bm.category]) cats[bm.category].push(pts);
+    });
+    // Radar: Cardio, Hormonal, Metabolic, Sleep/Recovery (perf HRV+sleep), Fitness (VO2+BF+RHR)
+    const sleepBms = BIOMARKERS.filter(b => b.marker === 'HRV (avg 30d)' || b.marker === 'Sleep Score');
+    const fitBms   = BIOMARKERS.filter(b => b.marker === 'VO2 Max' || b.marker === 'Resting HR' || b.marker === 'Body Fat %');
+    return [
+      avg(cats.Cardiovascular),
+      avg(cats.Hormonal),
+      avg(cats.Metabolic),
+      avg(sleepBms.map(b => statusPts[getStatus(b)] || 30)),
+      avg(fitBms.map(b => statusPts[getStatus(b)] || 30)),
+    ];
+  }
+
+  updateRadarChart() {
+    if (!this.charts.radar) return;
+    this.charts.radar.data.datasets[0].data = this._computeRadarData();
+    this.charts.radar.update();
   }
 
   // ── Daily Chart ──
@@ -875,9 +1887,9 @@ class Dashboard {
       const status = getStatus(bm);
       const catCls = categoryBadgeClass(bm.category);
       const optRange = bm.higher_better
-        ? `≥ ${bm.optimal_low}${bm.unit !== 'index' ? ' ' + bm.unit : ''}`
-        : `≤ ${bm.optimal_high}${bm.unit !== 'index' ? ' ' + bm.unit : ''}`;
-      const trendIcon = bm.trend === 'up' ? '↑' : bm.trend === 'down' ? '↓' : '→';
+        ? `&#8805; ${bm.optimal_low}${bm.unit !== 'index' ? ' ' + bm.unit : ''}`
+        : `&#8804; ${bm.optimal_high}${bm.unit !== 'index' ? ' ' + bm.unit : ''}`;
+      const trendIcon = bm.trend === 'up' ? '&#8593;' : bm.trend === 'down' ? '&#8595;' : '&#8594;';
       const trendCls = bm.higher_better
         ? (bm.trend === 'up' ? 'trend-up' : bm.trend === 'down' ? 'trend-down' : 'trend-neutral')
         : (bm.trend === 'down' ? 'trend-up' : bm.trend === 'up' ? 'trend-down' : 'trend-neutral');
@@ -905,7 +1917,7 @@ class Dashboard {
         }
         document.querySelectorAll('.biomarker-table thead th').forEach(t => t.classList.remove('sorted'));
         th.classList.add('sorted');
-        th.querySelector('.sort-arrow').textContent = this.sortDir === 'asc' ? '↑' : '↓';
+        th.querySelector('.sort-arrow').textContent = this.sortDir === 'asc' ? '&#8593;' : '&#8595;';
         this.renderTable();
       });
     });
@@ -913,6 +1925,656 @@ class Dashboard {
 }
 
 const dash = new Dashboard();
+
+// ─── DATA ENTRY SYSTEM ────────────────────────────────────────────────────────
+
+const DATA_STORAGE_KEY = 'healthsa_patient_data';
+
+const dataEntry = {
+
+  _buildModal() {
+    // Build tabs
+    const tabs = ['Cardiovascular', 'Hormonal', 'Metabolic', 'Performance', 'Paste Lab Text'];
+    const tabsEl = document.getElementById('modal-tabs');
+    const panelsEl = document.getElementById('modal-tab-panels');
+    tabsEl.innerHTML = '';
+    panelsEl.innerHTML = '';
+
+    tabs.forEach((tab, idx) => {
+      const btn = document.createElement('button');
+      btn.className = 'modal-tab-btn' + (idx === 0 ? ' active' : '');
+      btn.textContent = tab;
+      btn.dataset.tab = tab;
+      btn.addEventListener('click', () => this._switchTab(tab));
+      tabsEl.appendChild(btn);
+
+      const panel = document.createElement('div');
+      panel.className = 'modal-tab-panel' + (idx === 0 ? ' active' : '');
+      panel.dataset.panel = tab;
+
+      if (tab === 'Paste Lab Text') {
+        panel.innerHTML = `
+          <div class="modal-paste-area">
+            <label for="lab-paste-text">Paste your lab report text below, then click "Parse Values"</label>
+            <textarea class="modal-paste-textarea" id="lab-paste-text" placeholder="Paste raw lab text here...&#10;e.g. ApoB 82 mg/dL, LDL 105, Testosterone 620 ng/dL..."></textarea>
+            <button class="btn-parse" onclick="dataEntry.parseLabText()">Parse Values</button>
+            <div class="parse-result-msg" id="parse-result-msg"></div>
+          </div>`;
+      } else {
+        const defs = BIOMARKER_DEFS.filter(d => d.tab === tab);
+        const grid = document.createElement('div');
+        grid.className = 'modal-inputs-grid';
+        defs.forEach(def => {
+          const group = document.createElement('div');
+          group.className = 'modal-input-group';
+          group.innerHTML = `
+            <label for="bm-${def.id}">${def.label} <span style="font-weight:400;color:var(--text-secondary)">(${def.unit})</span></label>
+            <input type="number" id="bm-${def.id}" data-id="${def.id}" placeholder="${def.sample}" step="any">
+            <div class="modal-input-hint">${def.hint}</div>`;
+          grid.appendChild(group);
+        });
+        panel.appendChild(grid);
+      }
+      panelsEl.appendChild(panel);
+    });
+
+    // Wire has-value highlight
+    document.querySelectorAll('.modal-inputs-grid input[type="number"]').forEach(inp => {
+      inp.addEventListener('input', () => {
+        inp.classList.toggle('has-value', inp.value.trim() !== '');
+      });
+    });
+  },
+
+  _switchTab(tab) {
+    document.querySelectorAll('.modal-tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+    document.querySelectorAll('.modal-tab-panel').forEach(p => p.classList.toggle('active', p.dataset.panel === tab));
+  },
+
+  openModal() {
+    this._buildModal();
+    this._loadIntoForm();
+    document.getElementById('data-entry-modal').classList.add('open');
+    document.addEventListener('keydown', this._escHandler);
+  },
+
+  closeModal() {
+    document.getElementById('data-entry-modal').classList.remove('open');
+    document.removeEventListener('keydown', this._escHandler);
+  },
+
+  handleOverlayClick(e) {
+    if (e.target === document.getElementById('data-entry-modal')) {
+      this.closeModal();
+    }
+  },
+
+  _escHandler(e) {
+    if (e.key === 'Escape') dataEntry.closeModal();
+  },
+
+  _loadIntoForm() {
+    const saved = this._loadStorage();
+    if (saved) {
+      if (saved.patientName) document.getElementById('patient-name').value = saved.patientName;
+      if (saved.labDate)     document.getElementById('lab-date').value = saved.labDate;
+      if (saved.values) {
+        Object.entries(saved.values).forEach(([id, val]) => {
+          const inp = document.getElementById('bm-' + id);
+          if (inp && val !== null && val !== undefined && val !== '') {
+            inp.value = val;
+            inp.classList.add('has-value');
+          }
+        });
+      }
+    }
+  },
+
+  _loadStorage() {
+    try {
+      const raw = localStorage.getItem(DATA_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch { return null; }
+  },
+
+  saveData() {
+    const patientName = document.getElementById('patient-name').value.trim();
+    const labDate     = document.getElementById('lab-date').value;
+    const values = {};
+
+    document.querySelectorAll('.modal-inputs-grid input[type="number"]').forEach(inp => {
+      const id = inp.dataset.id;
+      const v  = inp.value.trim();
+      if (id && v !== '') values[id] = parseFloat(v);
+    });
+
+    const payload = { patientName, labDate, values };
+    try {
+      localStorage.setItem(DATA_STORAGE_KEY, JSON.stringify(payload));
+    } catch(e) {
+      alert('Could not save to localStorage: ' + e.message);
+    }
+
+    // Apply to BIOMARKERS
+    this._applyValues(values);
+    this._updateBadge(true, patientName, labDate);
+    this.closeModal();
+    dash.refreshAll();
+  },
+
+  _applyValues(values) {
+    // Map id -> BIOMARKERS index
+    const idxMap = {
+      apob: 0, ldl_c: 1, hdl_c: 2, triglycerides: 3, hscrp: 4, lp_a: 5,
+      total_testosterone: 6, free_testosterone: 7, dhea_s: 8, cortisol_am: 9, free_t3: 10, igf1: 11,
+      hba1c: 12, fasting_insulin: 13, fasting_glucose: 14, homa_ir: 15, uric_acid: 16,
+      vo2_max: 17, resting_hr: 18, hrv_avg: 19, sleep_score: 20, body_fat_pct: 21
+    };
+    Object.entries(values).forEach(([id, val]) => {
+      const idx = idxMap[id];
+      if (idx !== undefined && !isNaN(val)) {
+        BIOMARKERS[idx].current = val;
+      }
+    });
+  },
+
+  _updateBadge(usingYours, name, date) {
+    const badge = document.getElementById('data-source-badge');
+    if (usingYours) {
+      badge.className = 'data-source-badge using-yours';
+      const label = name ? `Using ${name}'s data ✓` : 'Using your data ✓';
+      badge.textContent = label;
+      if (date) {
+        document.getElementById('as-of-date').textContent = new Date(date + 'T00:00:00').toLocaleDateString('en-US', { month:'long', day:'numeric', year:'numeric' });
+      }
+    } else {
+      badge.className = 'data-source-badge using-sample';
+      badge.textContent = 'Using sample data';
+      document.getElementById('as-of-date').textContent = 'April 30, 2026';
+    }
+  },
+
+  resetToSample() {
+    if (!confirm('Reset all values to sample data? Your saved values will be cleared.')) return;
+    localStorage.removeItem(DATA_STORAGE_KEY);
+
+    // Restore original sample values
+    const samples = [82, 105, 62, 88, 0.8, 28, 620, 14.2, 285, 16, 3.4, 168, 5.3, 6.2, 89, 1.38, 5.2, 48, 52, 72, 76, 18];
+    samples.forEach((v, i) => { BIOMARKERS[i].current = v; });
+
+    this._updateBadge(false);
+    this.closeModal();
+    dash.refreshAll();
+  },
+
+  parseLabText() {
+    const text = document.getElementById('lab-paste-text').value;
+    const patterns = [
+      { id: 'apob',               re: /apob[^0-9]*(\d+\.?\d*)/i },
+      { id: 'ldl_c',              re: /ldl[\-\s]?c?[^0-9]*(\d+\.?\d*)/i },
+      { id: 'hdl_c',              re: /hdl[\-\s]?c?[^0-9]*(\d+\.?\d*)/i },
+      { id: 'triglycerides',      re: /triglycerides?[^0-9]*(\d+\.?\d*)/i },
+      { id: 'hscrp',              re: /hs[\-]?crp[^0-9]*(\d+\.?\d*)/i },
+      { id: 'lp_a',               re: /lp[\s\(]?a[\)]?[^0-9]*(\d+\.?\d*)/i },
+      { id: 'total_testosterone', re: /total\s+testosterone[^0-9]*(\d+\.?\d*)/i },
+      { id: 'free_testosterone',  re: /free\s+testosterone[^0-9]*(\d+\.?\d*)/i },
+      { id: 'dhea_s',             re: /dhea[\-\s]?s?[^0-9]*(\d+\.?\d*)/i },
+      { id: 'cortisol_am',        re: /cortisol[^0-9]*(\d+\.?\d*)/i },
+      { id: 'free_t3',            re: /free\s+t3[^0-9]*(\d+\.?\d*)/i },
+      { id: 'igf1',               re: /igf[\-\s]?1[^0-9]*(\d+\.?\d*)/i },
+      { id: 'hba1c',              re: /hba1c[^0-9]*(\d+\.?\d*)/i },
+      { id: 'fasting_insulin',    re: /fasting\s+insulin[^0-9]*(\d+\.?\d*)/i },
+      { id: 'fasting_glucose',    re: /fasting\s+glucose[^0-9]*(\d+\.?\d*)/i },
+      { id: 'homa_ir',            re: /homa[\-\s]?ir[^0-9]*(\d+\.?\d*)/i },
+      { id: 'uric_acid',          re: /uric\s+acid[^0-9]*(\d+\.?\d*)/i },
+    ];
+    let found = 0;
+    patterns.forEach(({ id, re }) => {
+      const m = text.match(re);
+      if (m) {
+        const inp = document.getElementById('bm-' + id);
+        if (inp) {
+          inp.value = m[1];
+          inp.classList.add('has-value');
+          found++;
+        }
+      }
+    });
+    const msg = document.getElementById('parse-result-msg');
+    msg.textContent = found > 0 ? `Parsed ${found} value${found !== 1 ? 's' : ''} — review and edit if needed.` : 'No recognizable values found. Check format.';
+    msg.style.color = found > 0 ? 'var(--color-optimal)' : 'var(--color-attention)';
+  },
+
+  init() {
+    const saved = this._loadStorage();
+    if (saved && saved.values && Object.keys(saved.values).length > 0) {
+      this._applyValues(saved.values);
+      this._updateBadge(true, saved.patientName, saved.labDate);
+      dash.refreshAll();
+    }
+  }
+};
+
+// Init data entry on load
+dataEntry.init();
+</script>
+
+<script>
+(function() {
+  'use strict';
+
+  // ── Constants ────────────────────────────────────────────────────────────────
+  const STORAGE_KEY = 'healthsa_anthropic_key';
+  const API_URL     = 'https://api.anthropic.com/v1/messages';
+  const MODEL       = 'claude-haiku-4-5-20251001';
+  const MAX_TOKENS  = 1024;
+  const MAX_HISTORY = 6; // messages (pairs of user+assistant)
+
+  // ── State ────────────────────────────────────────────────────────────────────
+  let conversationHistory = []; // [{role, content}]
+  let isStreaming = false;
+  let initialSystemPrompt = '';
+
+  // ── Helpers ──────────────────────────────────────────────────────────────────
+
+  function $(id) { return document.getElementById(id); }
+
+  function getBiomarkers() {
+    // Try global BIOMARKERS first, then window.BIOMARKERS for compatibility
+    if (typeof BIOMARKERS !== 'undefined' && Array.isArray(BIOMARKERS)) return BIOMARKERS;
+    if (window.BIOMARKERS && Array.isArray(window.BIOMARKERS)) return window.BIOMARKERS;
+    return null;
+  }
+
+  function getStatusLabel(bm) {
+    // Mirrors the dashboard getStatus() logic
+    const v = bm.current;
+    let status;
+    if (bm.higher_better) {
+      if (v >= bm.optimal_low && v <= bm.optimal_high) status = 'Optimal';
+      else if (bm.good_low != null && v >= bm.good_low) status = 'Good';
+      else status = 'Needs Attention';
+    } else {
+      if (v <= bm.optimal_high && (bm.optimal_low == null || v >= bm.optimal_low)) status = 'Optimal';
+      else if (bm.good_high != null && v <= bm.good_high) status = 'Good';
+      else status = 'Needs Attention';
+    }
+    return status;
+  }
+
+  function buildBiomarkerPromptBlock(biomarkers) {
+    const categories = [...new Set(biomarkers.map(b => b.category))];
+    let block = '';
+    for (const cat of categories) {
+      block += `\n### ${cat}\n`;
+      biomarkers.filter(b => b.category === cat).forEach(bm => {
+        const status = getStatusLabel(bm);
+        const optDir = bm.higher_better ? `optimal >= ${bm.optimal_low}` : `optimal <= ${bm.optimal_high}`;
+        const trend  = bm.trend === 'up' ? 'trending up' : bm.trend === 'down' ? 'trending down' : 'stable';
+        block += `- **${bm.marker}**: ${bm.current} ${bm.unit} (${optDir} ${bm.unit}) -- Status: **${status}** -- Trend: ${trend}\n`;
+        if (bm.note) block += `  Note: ${bm.note}\n`;
+      });
+    }
+    return block;
+  }
+
+  function buildSystemPrompt(biomarkers) {
+    const bmBlock = buildBiomarkerPromptBlock(biomarkers);
+    return `You are a knowledgeable health advisor (NOT a doctor or licensed medical professional) helping a patient understand their biomarker lab results and wearable data in the context of healthspan optimization and longevity medicine.
+
+Here is the patient's current biomarker panel:
+${bmBlock}
+
+Please respond with a structured health analysis in the following format:
+
+## Overall Summary
+(2-3 sentences giving a high-level picture of their health status)
+
+## Top 3 Strengths
+(List 3 biomarkers or areas where the patient is excelling, with brief explanation of why each matters for healthspan)
+
+## Top 3 Areas Needing Attention
+(List 3 specific areas that need improvement. For each, provide:
+- The current issue and why it matters
+- 2-3 specific, actionable steps they can take)
+
+## Question for Your Next PCP Visit
+(One high-value question they should ask their primary care physician based on their results)
+
+## Important Reminder
+(A brief, friendly reminder that this analysis is for educational purposes only, is not medical advice, and that they should work with their healthcare team for any clinical decisions)
+
+Keep your language accessible but not dumbed down -- this person is health-literate and motivated. Be encouraging but honest about areas needing work.`;
+  }
+
+  // ── Simple markdown renderer ─────────────────────────────────────────────────
+  function renderMarkdown(text) {
+    return text
+      // Headings
+      .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+      .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+      // Bold
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      // Italic
+      .replace(/\*(.+?)\*/g, '<em>$1</em>')
+      // Unordered list items
+      .replace(/^[-•] (.+)$/gm, '<li>$1</li>')
+      // Wrap consecutive <li> in <ul>
+      .replace(/(<li>.*<\/li>\n?)+/gs, (m) => '<ul>' + m + '</ul>')
+      // Numbered list items
+      .replace(/^\d+\. (.+)$/gm, '<li>$1</li>')
+      // Paragraphs: double newlines
+      .replace(/\n\n+/g, '</p><p>')
+      .replace(/^(?!<[hup]|<\/[hup])(.+)$/gm, (m) => m.startsWith('<') ? m : m)
+      // Trim
+      .trim();
+  }
+
+  // Stream SSE reader helper
+  async function* streamSSE(response) {
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop(); // keep incomplete line in buffer
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          const data = line.slice(6).trim();
+          if (data === '[DONE]') return;
+          try {
+            yield JSON.parse(data);
+          } catch {
+            // skip malformed chunks
+          }
+        }
+      }
+    }
+  }
+
+  // ── Core API call ────────────────────────────────────────────────────────────
+  async function callClaudeStreaming(messages, onChunk, onDone, onError) {
+    const apiKey = localStorage.getItem(STORAGE_KEY);
+    if (!apiKey || !apiKey.startsWith('sk-ant-')) {
+      onError('No valid API key found. Please expand the "Anthropic API Key" section above and save your key.');
+      return;
+    }
+
+    let response;
+    try {
+      response = await fetch(API_URL, {
+        method: 'POST',
+        headers: {
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+          'content-type': 'application/json',
+          'anthropic-dangerous-allow-browser': 'true'
+        },
+        body: JSON.stringify({
+          model: MODEL,
+          max_tokens: MAX_TOKENS,
+          stream: true,
+          messages: messages
+        })
+      });
+    } catch (err) {
+      onError('Network error: ' + err.message + '. Check your connection and try again.');
+      return;
+    }
+
+    if (!response.ok) {
+      let errMsg = `API error ${response.status}`;
+      try {
+        const errBody = await response.json();
+        errMsg = errBody.error?.message || errMsg;
+        if (response.status === 401) errMsg = 'Invalid API key. Please check your key and try again.';
+        if (response.status === 429) errMsg = 'Rate limit reached. Please wait a moment and try again.';
+      } catch {}
+      onError(errMsg);
+      return;
+    }
+
+    let fullText = '';
+    for await (const event of streamSSE(response)) {
+      if (event.type === 'content_block_delta' && event.delta?.type === 'text_delta') {
+        const chunk = event.delta.text;
+        fullText += chunk;
+        onChunk(chunk, fullText);
+      }
+      if (event.type === 'message_stop') {
+        onDone(fullText);
+        return;
+      }
+    }
+    onDone(fullText);
+  }
+
+  // ── aiPanel object ───────────────────────────────────────────────────────────
+  window.aiPanel = {
+
+    toggleKeySection() {
+      const body   = $('aiKeyBody');
+      const toggle = $('aiKeyToggle');
+      const isOpen = body.classList.contains('open');
+      body.classList.toggle('open', !isOpen);
+      toggle.classList.toggle('open', !isOpen);
+      toggle.setAttribute('aria-expanded', String(!isOpen));
+    },
+
+    saveKey() {
+      const val = $('aiKeyInput').value.trim();
+      if (!val) {
+        alert('Please paste your Anthropic API key first.');
+        return;
+      }
+      localStorage.setItem(STORAGE_KEY, val);
+      const ind = $('aiKeySavedIndicator');
+      ind.classList.add('visible');
+      setTimeout(() => ind.classList.remove('visible'), 3000);
+      // Close key section after save
+      $('aiKeyBody').classList.remove('open');
+      $('aiKeyToggle').classList.remove('open');
+      $('aiKeyToggle').setAttribute('aria-expanded', 'false');
+    },
+
+    setLoading(visible, text) {
+      const loading = $('aiLoading');
+      loading.classList.toggle('visible', visible);
+      if (text) $('aiLoadingText').textContent = text;
+      $('aiResults').classList.toggle('open', true);
+    },
+
+    showError(msg) {
+      const err = $('aiError');
+      err.textContent = msg;
+      err.classList.add('visible');
+      $('aiOutput').classList.remove('visible');
+      $('aiLoading').classList.remove('visible');
+      $('aiResults').classList.add('open');
+      isStreaming = false;
+      $('aiGenerateBtn').disabled = false;
+    },
+
+    clearError() {
+      $('aiError').classList.remove('visible');
+    },
+
+    async generateAnalysis() {
+      if (isStreaming) return;
+
+      const biomarkers = getBiomarkers();
+      if (!biomarkers || biomarkers.length === 0) {
+        this.showError('No biomarker data found. Please ensure the dashboard data has loaded correctly.');
+        return;
+      }
+
+      this.clearError();
+      $('aiOutput').classList.remove('visible');
+      $('aiOutput').innerHTML = '';
+      $('aiChatSection').classList.remove('visible');
+      conversationHistory = [];
+
+      isStreaming = true;
+      $('aiGenerateBtn').disabled = true;
+      $('aiStatusText').textContent = 'Analyzing your biomarkers with Claude...';
+      this.setLoading(true, 'Analyzing your biomarkers...');
+
+      // Build system prompt and initial user message
+      const systemContent = buildSystemPrompt(biomarkers);
+      initialSystemPrompt = systemContent;
+
+      const messages = [
+        { role: 'user', content: 'Please analyze my biomarker results and provide the structured health analysis.' }
+      ];
+
+      const outputEl = $('aiOutput');
+
+      await callClaudeStreaming(
+        messages,
+        // onChunk
+        (chunk, fullText) => {
+          $('aiLoading').classList.remove('visible');
+          outputEl.classList.add('visible');
+          outputEl.innerHTML = '<p>' + renderMarkdown(fullText) + '</p><span class="ai-cursor"></span>';
+        },
+        // onDone
+        (fullText) => {
+          isStreaming = false;
+          $('aiGenerateBtn').disabled = false;
+          $('aiStatusText').textContent = '';
+          outputEl.innerHTML = '<p>' + renderMarkdown(fullText) + '</p>';
+          $('aiLoading').classList.remove('visible');
+
+          // Store in conversation history for follow-ups
+          conversationHistory.push(
+            { role: 'user', content: 'Please analyze my biomarker results and provide the structured health analysis.' },
+            { role: 'assistant', content: fullText }
+          );
+
+          // Show chat section
+          $('aiChatSection').classList.add('visible');
+        },
+        // onError
+        (msg) => {
+          this.showError(msg);
+        }
+      );
+    },
+
+    autoResizeChat(el) {
+      el.style.height = 'auto';
+      el.style.height = Math.min(el.scrollHeight, 100) + 'px';
+    },
+
+    chatKeydown(event) {
+      if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        this.sendChat();
+      }
+    },
+
+    async sendChat() {
+      if (isStreaming) return;
+      const input = $('aiChatInput');
+      const question = input.value.trim();
+      if (!question) return;
+
+      input.value = '';
+      input.style.height = 'auto';
+
+      const history = $('aiChatHistory');
+      const sendBtn = $('aiChatSendBtn');
+
+      // Append user bubble
+      const userBubble = document.createElement('div');
+      userBubble.className = 'ai-chat-bubble user';
+      userBubble.textContent = question;
+      history.appendChild(userBubble);
+      history.scrollTop = history.scrollHeight;
+
+      // Append assistant bubble (streaming)
+      const aiBubble = document.createElement('div');
+      aiBubble.className = 'ai-chat-bubble assistant streaming';
+      aiBubble.innerHTML = '<span class="ai-cursor"></span>';
+      history.appendChild(aiBubble);
+      history.scrollTop = history.scrollHeight;
+
+      // Trim conversation history to last MAX_HISTORY messages
+      conversationHistory.push({ role: 'user', content: question });
+      if (conversationHistory.length > MAX_HISTORY) {
+        conversationHistory = conversationHistory.slice(-MAX_HISTORY);
+      }
+
+      isStreaming = true;
+      sendBtn.disabled = true;
+
+      // Build messages array -- include system context on each follow-up via a leading user turn
+      const contextMsg = [
+        {
+          role: 'user',
+          content: initialSystemPrompt + '\n\n[Context established. Now answering follow-up questions about the patient\'s biomarker panel above.]'
+        },
+        {
+          role: 'assistant',
+          content: conversationHistory.length >= 2 ? conversationHistory[1].content : 'Understood. I\'m ready to answer follow-up questions about your health results.'
+        },
+        ...conversationHistory.slice(2)
+      ];
+
+      await callClaudeStreaming(
+        contextMsg,
+        // onChunk
+        (chunk, fullText) => {
+          aiBubble.innerHTML = '<p>' + renderMarkdown(fullText) + '</p><span class="ai-cursor"></span>';
+          history.scrollTop = history.scrollHeight;
+        },
+        // onDone
+        (fullText) => {
+          isStreaming = false;
+          sendBtn.disabled = false;
+          aiBubble.classList.remove('streaming');
+          aiBubble.innerHTML = '<p>' + renderMarkdown(fullText) + '</p>';
+          history.scrollTop = history.scrollHeight;
+
+          // Update history with assistant response
+          conversationHistory.push({ role: 'assistant', content: fullText });
+          if (conversationHistory.length > MAX_HISTORY) {
+            conversationHistory = conversationHistory.slice(-MAX_HISTORY);
+          }
+        },
+        // onError
+        (msg) => {
+          isStreaming = false;
+          sendBtn.disabled = false;
+          aiBubble.classList.remove('streaming');
+          aiBubble.innerHTML = `<em style="color:var(--color-attention)">${msg}</em>`;
+          // Remove the failed user message from history
+          conversationHistory.pop();
+        }
+      );
+    },
+
+    init() {
+      // Pre-populate key input if key already saved
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        $('aiKeyInput').value = saved;
+        $('aiKeySavedIndicator').classList.add('visible');
+      }
+    }
+  };
+
+  // Init on DOM ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => window.aiPanel.init());
+  } else {
+    window.aiPanel.init();
+  }
+
+})();
 </script>
 </body>
 </html>
