@@ -1,3 +1,11 @@
 .apikey
+.cloudflare_apikey
+.encrypted_key.json
 *.env
 .env*
+nul
+test_cf.sh
+test_worker.sh
+get_subdomain.sh
+create_subdomain.sh
+enable_subdomain.sh
