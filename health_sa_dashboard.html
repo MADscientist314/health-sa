@@ -1430,38 +1430,6 @@
     <!-- Panel Content (locked until code entered) -->
     <div class="ai-panel-content" id="aiPanelContent">
 
-    <!-- API Key Setup (collapsible) -->
-    <div class="ai-key-section">
-      <button class="ai-key-toggle" id="aiKeyToggle" onclick="aiPanel.toggleKeySection()" aria-expanded="false">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink:0">
-          <path d="M12 1C8.676 1 6 3.676 6 7c0 2.09.963 3.96 2.47 5.207L3 18.586 3.414 19H7v2h2v2h6v-4.586l3.53-3.53A6 6 0 0012 1zm0 2a4 4 0 110 8 4 4 0 010-8zm0 1.5a2.5 2.5 0 100 5 2.5 2.5 0 000-5z"/>
-        </svg>
-        Anthropic API Key
-        <span id="aiKeySavedIndicator" class="ai-key-saved-indicator" style="font-size:11px;margin-left:8px;">
-          &#10003; Saved
-        </span>
-        <span class="ai-key-toggle-arrow">&#9660;</span>
-      </button>
-      <div class="ai-key-body" id="aiKeyBody">
-        <div class="ai-key-row">
-          <input
-            type="password"
-            class="ai-key-input"
-            id="aiKeyInput"
-            placeholder="sk-ant-..."
-            autocomplete="off"
-            spellcheck="false"
-          />
-          <button class="ai-key-save-btn" onclick="aiPanel.saveKey()">Save Key</button>
-        </div>
-        <div class="ai-key-note">
-          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
-          </svg>
-          Your key is stored locally only in your browser and is never sent anywhere except directly to Anthropic's API.
-        </div>
-      </div>
-    </div>
 
     <!-- Generate Button -->
     <div class="ai-actions">
@@ -2255,31 +2223,10 @@ dataEntry.init();
   'use strict';
 
   // ── Constants ────────────────────────────────────────────────────────────────
-  // ── Access code + encrypted API key ─────────────────────────────────────────
+  // ── Access code gate ─────────────────────────────────────────────────────────
   const ACCESS_CODE    = 'HEALTHSA';
   const GATE_STORE_KEY = 'healthsa_access_granted';
-  const STORAGE_KEY    = 'healthsa_anthropic_key';
-  const ENCRYPTED_KEY  = {"salt":"/w/Nn8zs2mugMLGMmB3iNQ==","iv":"JMtREJNxXx7P3fRe","ct":"G/oSgRInGnexNCi/NNvUcuOwGWYjIdAtYCdUkwRPfBh5wbmylkVxsh6CR9goMmFJzlkRqUdLdSr3QZlNqpevE8m9PRXOzOrJdujIvGw7yVGEM65shwpFrOgyLpk5pq8QmZ93QbeCQGgIr7aH","tag":"ZlUsvylRfBVv6ny1INJ9Ow=="};
-
-  async function decryptApiKey(password) {
-    const b64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
-    const pwKey = await crypto.subtle.importKey(
-      'raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveKey']
-    );
-    const aesKey = await crypto.subtle.deriveKey(
-      { name: 'PBKDF2', salt: b64(ENCRYPTED_KEY.salt), iterations: 100000, hash: 'SHA-256' },
-      pwKey, { name: 'AES-GCM', length: 256 }, false, ['decrypt']
-    );
-    const ct  = b64(ENCRYPTED_KEY.ct);
-    const tag = b64(ENCRYPTED_KEY.tag);
-    const buf = new Uint8Array(ct.length + tag.length);
-    buf.set(ct); buf.set(tag, ct.length);
-    const dec = await crypto.subtle.decrypt(
-      { name: 'AES-GCM', iv: b64(ENCRYPTED_KEY.iv) }, aesKey, buf
-    );
-    return new TextDecoder().decode(dec);
-  }
-  const API_URL        = 'https://api.anthropic.com/v1/messages';
+  const API_URL        = 'https://health-sa-proxy.healthsa.workers.dev';
   const MODEL       = 'claude-haiku-4-5-20251001';
   const MAX_TOKENS  = 1024;
   const MAX_HISTORY = 6; // messages (pairs of user+assistant)
@@ -2411,21 +2358,14 @@ Keep your language accessible but not dumbed down -- this person is health-liter
 
   // ── Core API call ────────────────────────────────────────────────────────────
   async function callClaudeStreaming(messages, onChunk, onDone, onError) {
-    const apiKey = localStorage.getItem(STORAGE_KEY);
-    if (!apiKey || !apiKey.startsWith('sk-ant-')) {
-      onError('No valid API key found. Please expand the "Anthropic API Key" section above and save your key.');
-      return;
-    }
-
     let response;
     try {
       response = await fetch(API_URL, {
         method: 'POST',
+        mode: 'cors',
         headers: {
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-          'content-type': 'application/json',
-          'anthropic-dangerous-allow-browser': 'true'
+          'X-Access-Code': ACCESS_CODE,
+          'content-type': 'application/json'
         },
         body: JSON.stringify({
           model: MODEL,
@@ -2435,7 +2375,12 @@ Keep your language accessible but not dumbed down -- this person is health-liter
         })
       });
     } catch (err) {
-      onError('Network error: ' + err.message + '. Check your connection and try again.');
+      console.error('[HealthSA] Fetch error:', err);
+      const isCors = err.message === 'Failed to fetch' || err.name === 'TypeError';
+      const hint = isCors
+        ? ' This is likely a CORS or network issue — check your browser console (F12 → Console) for details, or try a different browser.'
+        : '';
+      onError('Network error: ' + err.message + '.' + hint);
       return;
     }
 
@@ -2474,10 +2419,9 @@ Keep your language accessible but not dumbed down -- this person is health-liter
       $('aiPanelContent').classList.add('unlocked');
     },
 
-    async checkCode() {
+    checkCode() {
       const input = $('aiGateInput');
       const errorEl = $('aiGateError');
-      const btn = input.nextElementSibling;
       const entered = input.value.trim().toUpperCase();
       if (entered !== ACCESS_CODE) {
         errorEl.textContent = 'Incorrect code — please try again.';
@@ -2486,47 +2430,9 @@ Keep your language accessible but not dumbed down -- this person is health-liter
         input.select();
         return;
       }
-      // Correct — decrypt the API key and store it
-      btn.textContent = 'Unlocking…';
-      btn.disabled = true;
-      try {
-        const apiKey = await decryptApiKey(entered);
-        localStorage.setItem(STORAGE_KEY, apiKey);
-        localStorage.setItem(GATE_STORE_KEY, '1');
-        errorEl.textContent = '';
-        $('aiKeyInput').value = apiKey;
-        $('aiKeySavedIndicator').classList.add('visible');
-        this._unlockPanel();
-      } catch(e) {
-        errorEl.textContent = 'Decryption failed — please reload and try again.';
-        btn.textContent = 'Unlock';
-        btn.disabled = false;
-      }
-    },
-
-    toggleKeySection() {
-      const body   = $('aiKeyBody');
-      const toggle = $('aiKeyToggle');
-      const isOpen = body.classList.contains('open');
-      body.classList.toggle('open', !isOpen);
-      toggle.classList.toggle('open', !isOpen);
-      toggle.setAttribute('aria-expanded', String(!isOpen));
-    },
-
-    saveKey() {
-      const val = $('aiKeyInput').value.trim();
-      if (!val) {
-        alert('Please paste your Anthropic API key first.');
-        return;
-      }
-      localStorage.setItem(STORAGE_KEY, val);
-      const ind = $('aiKeySavedIndicator');
-      ind.classList.add('visible');
-      setTimeout(() => ind.classList.remove('visible'), 3000);
-      // Close key section after save
-      $('aiKeyBody').classList.remove('open');
-      $('aiKeyToggle').classList.remove('open');
-      $('aiKeyToggle').setAttribute('aria-expanded', 'false');
+      localStorage.setItem(GATE_STORE_KEY, '1');
+      errorEl.textContent = '';
+      this._unlockPanel();
     },
 
     setLoading(visible, text) {
@@ -2710,12 +2616,6 @@ Keep your language accessible but not dumbed down -- this person is health-liter
       // Auto-unlock if previously authenticated
       if (localStorage.getItem(GATE_STORE_KEY) === '1') {
         this._unlockPanel();
-      }
-      // Pre-populate key input if key already saved
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        $('aiKeyInput').value = saved;
-        $('aiKeySavedIndicator').classList.add('visible');
       }
     }
   };
