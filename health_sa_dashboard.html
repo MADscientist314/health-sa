@@ -2357,8 +2357,10 @@ Keep your language accessible but not dumbed down -- this person is health-liter
   }
 
   // ── Core API call ────────────────────────────────────────────────────────────
-  async function callClaudeStreaming(messages, onChunk, onDone, onError) {
+  async function callClaudeStreaming(messages, onChunk, onDone, onError, systemPrompt) {
     let response;
+    const requestBody = { model: MODEL, max_tokens: MAX_TOKENS, stream: true, messages };
+    if (systemPrompt) requestBody.system = systemPrompt;
     try {
       response = await fetch(API_URL, {
         method: 'POST',
@@ -2367,12 +2369,7 @@ Keep your language accessible but not dumbed down -- this person is health-liter
           'X-Access-Code': ACCESS_CODE,
           'content-type': 'application/json'
         },
-        body: JSON.stringify({
-          model: MODEL,
-          max_tokens: MAX_TOKENS,
-          stream: true,
-          messages: messages
-        })
+        body: JSON.stringify(requestBody)
       });
     } catch (err) {
       console.error('[HealthSA] Fetch error:', err);
@@ -2515,7 +2512,8 @@ Keep your language accessible but not dumbed down -- this person is health-liter
         // onError
         (msg) => {
           this.showError(msg);
-        }
+        },
+        systemContent
       );
     },
 
@@ -2566,21 +2564,8 @@ Keep your language accessible but not dumbed down -- this person is health-liter
       isStreaming = true;
       sendBtn.disabled = true;
 
-      // Build messages array -- include system context on each follow-up via a leading user turn
-      const contextMsg = [
-        {
-          role: 'user',
-          content: initialSystemPrompt + '\n\n[Context established. Now answering follow-up questions about the patient\'s biomarker panel above.]'
-        },
-        {
-          role: 'assistant',
-          content: conversationHistory.length >= 2 ? conversationHistory[1].content : 'Understood. I\'m ready to answer follow-up questions about your health results.'
-        },
-        ...conversationHistory.slice(2)
-      ];
-
       await callClaudeStreaming(
-        contextMsg,
+        conversationHistory,
         // onChunk
         (chunk, fullText) => {
           aiBubble.innerHTML = '<p>' + renderMarkdown(fullText) + '</p><span class="ai-cursor"></span>';
@@ -2608,7 +2593,8 @@ Keep your language accessible but not dumbed down -- this person is health-liter
           aiBubble.innerHTML = `<em style="color:var(--color-attention)">${msg}</em>`;
           // Remove the failed user message from history
           conversationHistory.pop();
-        }
+        },
+        initialSystemPrompt
       );
     },
 
