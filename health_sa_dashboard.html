@@ -2255,10 +2255,30 @@ dataEntry.init();
   'use strict';
 
   // ── Constants ────────────────────────────────────────────────────────────────
-  // ── Access code (change this to update the demo code) ───────────────────────
+  // ── Access code + encrypted API key ─────────────────────────────────────────
   const ACCESS_CODE    = 'HEALTHSA';
   const GATE_STORE_KEY = 'healthsa_access_granted';
   const STORAGE_KEY    = 'healthsa_anthropic_key';
+  const ENCRYPTED_KEY  = {"salt":"/w/Nn8zs2mugMLGMmB3iNQ==","iv":"JMtREJNxXx7P3fRe","ct":"G/oSgRInGnexNCi/NNvUcuOwGWYjIdAtYCdUkwRPfBh5wbmylkVxsh6CR9goMmFJzlkRqUdLdSr3QZlNqpevE8m9PRXOzOrJdujIvGw7yVGEM65shwpFrOgyLpk5pq8QmZ93QbeCQGgIr7aH","tag":"ZlUsvylRfBVv6ny1INJ9Ow=="};
+
+  async function decryptApiKey(password) {
+    const b64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+    const pwKey = await crypto.subtle.importKey(
+      'raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveKey']
+    );
+    const aesKey = await crypto.subtle.deriveKey(
+      { name: 'PBKDF2', salt: b64(ENCRYPTED_KEY.salt), iterations: 100000, hash: 'SHA-256' },
+      pwKey, { name: 'AES-GCM', length: 256 }, false, ['decrypt']
+    );
+    const ct  = b64(ENCRYPTED_KEY.ct);
+    const tag = b64(ENCRYPTED_KEY.tag);
+    const buf = new Uint8Array(ct.length + tag.length);
+    buf.set(ct); buf.set(tag, ct.length);
+    const dec = await crypto.subtle.decrypt(
+      { name: 'AES-GCM', iv: b64(ENCRYPTED_KEY.iv) }, aesKey, buf
+    );
+    return new TextDecoder().decode(dec);
+  }
   const API_URL        = 'https://api.anthropic.com/v1/messages';
   const MODEL       = 'claude-haiku-4-5-20251001';
   const MAX_TOKENS  = 1024;
@@ -2454,19 +2474,33 @@ Keep your language accessible but not dumbed down -- this person is health-liter
       $('aiPanelContent').classList.add('unlocked');
     },
 
-    checkCode() {
+    async checkCode() {
       const input = $('aiGateInput');
       const errorEl = $('aiGateError');
+      const btn = input.nextElementSibling;
       const entered = input.value.trim().toUpperCase();
-      if (entered === ACCESS_CODE) {
-        localStorage.setItem(GATE_STORE_KEY, '1');
-        errorEl.textContent = '';
-        this._unlockPanel();
-      } else {
+      if (entered !== ACCESS_CODE) {
         errorEl.textContent = 'Incorrect code — please try again.';
         input.classList.add('error');
         setTimeout(() => input.classList.remove('error'), 400);
         input.select();
+        return;
+      }
+      // Correct — decrypt the API key and store it
+      btn.textContent = 'Unlocking…';
+      btn.disabled = true;
+      try {
+        const apiKey = await decryptApiKey(entered);
+        localStorage.setItem(STORAGE_KEY, apiKey);
+        localStorage.setItem(GATE_STORE_KEY, '1');
+        errorEl.textContent = '';
+        $('aiKeyInput').value = apiKey;
+        $('aiKeySavedIndicator').classList.add('visible');
+        this._unlockPanel();
+      } catch(e) {
+        errorEl.textContent = 'Decryption failed — please reload and try again.';
+        btn.textContent = 'Unlock';
+        btn.disabled = false;
       }
     },
 
