@@ -911,6 +911,69 @@
       to   { opacity: 1; transform: translateY(0); }
     }
 
+    /* ── Access Gate ── */
+    .ai-gate {
+      padding: 36px 22px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 14px;
+    }
+    .ai-gate-icon {
+      width: 52px;
+      height: 52px;
+      background: var(--accent-light);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .ai-gate-icon svg { width: 24px; height: 24px; fill: var(--accent); }
+    .ai-gate h3 { font-size: 16px; font-weight: 700; color: var(--text-primary); }
+    .ai-gate p { font-size: 13px; color: var(--text-secondary); max-width: 380px; line-height: 1.6; }
+    .ai-gate-input-row { display: flex; gap: 8px; align-items: center; margin-top: 4px; }
+    .ai-gate-input {
+      padding: 10px 16px;
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      text-align: center;
+      width: 220px;
+      outline: none;
+      color: var(--text-primary);
+      transition: border-color 0.15s;
+      font-family: monospace;
+    }
+    .ai-gate-input:focus { border-color: var(--accent); }
+    .ai-gate-input.error { border-color: var(--color-attention); animation: ai-shake 0.35s ease; }
+    @keyframes ai-shake {
+      0%,100% { transform: translateX(0); }
+      20%      { transform: translateX(-6px); }
+      60%      { transform: translateX(6px); }
+    }
+    .ai-gate-btn {
+      padding: 10px 20px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+      white-space: nowrap;
+    }
+    .ai-gate-btn:hover { background: #238a7d; }
+    .ai-gate-btn:active { transform: scale(0.97); }
+    .ai-gate-error { font-size: 12px; color: var(--color-attention); font-weight: 600; min-height: 16px; }
+    .ai-gate-hint { font-size: 11px; color: var(--text-secondary); }
+    .ai-panel-content { display: none; }
+    .ai-panel-content.unlocked { display: block; }
+
     /* ── Data Entry Modal ── */
     .modal-overlay {
       display: none;
@@ -1340,6 +1403,33 @@
       </div>
     </div>
 
+    <!-- Access Gate -->
+    <div class="ai-gate" id="aiGate">
+      <div class="ai-gate-icon">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM12 17c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1s3.1 1.39 3.1 3.1v2z"/></svg>
+      </div>
+      <h3>Demo Access Required</h3>
+      <p>This AI analysis feature is available to Health SA demo participants. Enter your access code below to unlock it.</p>
+      <div class="ai-gate-input-row">
+        <input
+          type="text"
+          class="ai-gate-input"
+          id="aiGateInput"
+          placeholder="ENTER CODE"
+          maxlength="20"
+          autocomplete="off"
+          spellcheck="false"
+          onkeydown="if(event.key==='Enter') aiPanel.checkCode()"
+        />
+        <button class="ai-gate-btn" onclick="aiPanel.checkCode()">Unlock</button>
+      </div>
+      <div class="ai-gate-error" id="aiGateError"></div>
+      <div class="ai-gate-hint">Contact Health SA for your personal access code</div>
+    </div>
+
+    <!-- Panel Content (locked until code entered) -->
+    <div class="ai-panel-content" id="aiPanelContent">
+
     <!-- API Key Setup (collapsible) -->
     <div class="ai-key-section">
       <button class="ai-key-toggle" id="aiKeyToggle" onclick="aiPanel.toggleKeySection()" aria-expanded="false">
@@ -1416,6 +1506,7 @@
       </div>
     </div>
 
+    </div><!-- /.ai-panel-content -->
   </div>
 
   <footer class="footer">
@@ -2164,8 +2255,11 @@ dataEntry.init();
   'use strict';
 
   // ── Constants ────────────────────────────────────────────────────────────────
-  const STORAGE_KEY = 'healthsa_anthropic_key';
-  const API_URL     = 'https://api.anthropic.com/v1/messages';
+  // ── Access code (change this to update the demo code) ───────────────────────
+  const ACCESS_CODE    = 'HEALTHSA';
+  const GATE_STORE_KEY = 'healthsa_access_granted';
+  const STORAGE_KEY    = 'healthsa_anthropic_key';
+  const API_URL        = 'https://api.anthropic.com/v1/messages';
   const MODEL       = 'claude-haiku-4-5-20251001';
   const MAX_TOKENS  = 1024;
   const MAX_HISTORY = 6; // messages (pairs of user+assistant)
@@ -2354,6 +2448,27 @@ Keep your language accessible but not dumbed down -- this person is health-liter
 
   // ── aiPanel object ───────────────────────────────────────────────────────────
   window.aiPanel = {
+
+    _unlockPanel() {
+      $('aiGate').style.display = 'none';
+      $('aiPanelContent').classList.add('unlocked');
+    },
+
+    checkCode() {
+      const input = $('aiGateInput');
+      const errorEl = $('aiGateError');
+      const entered = input.value.trim().toUpperCase();
+      if (entered === ACCESS_CODE) {
+        localStorage.setItem(GATE_STORE_KEY, '1');
+        errorEl.textContent = '';
+        this._unlockPanel();
+      } else {
+        errorEl.textContent = 'Incorrect code — please try again.';
+        input.classList.add('error');
+        setTimeout(() => input.classList.remove('error'), 400);
+        input.select();
+      }
+    },
 
     toggleKeySection() {
       const body   = $('aiKeyBody');
@@ -2558,6 +2673,10 @@ Keep your language accessible but not dumbed down -- this person is health-liter
     },
 
     init() {
+      // Auto-unlock if previously authenticated
+      if (localStorage.getItem(GATE_STORE_KEY) === '1') {
+        this._unlockPanel();
+      }
       // Pre-populate key input if key already saved
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
