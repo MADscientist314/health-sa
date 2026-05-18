@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Health SA — Healthspan Dashboard</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <style>
     :root {
       --bg-body: #f0f4f8;
@@ -136,6 +137,91 @@
       white-space: nowrap;
     }
 
+    /* ── Logout Button ── */
+    .btn-logout {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 7px 14px;
+      background: rgba(255,255,255,0.12);
+      color: var(--text-muted-dark);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 7px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+      white-space: nowrap;
+    }
+    .btn-logout:hover { background: rgba(255,255,255,0.2); color: #fff; }
+
+    /* ── Biomarker Tooltip ── */
+    .bm-tooltip {
+      position: fixed;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      max-width: 320px;
+      font-size: 12.5px;
+      line-height: 1.55;
+      color: var(--text-primary);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+      z-index: 9999;
+      pointer-events: none;
+      display: none;
+    }
+    .bm-tooltip-title {
+      font-weight: 700;
+      font-size: 13px;
+      margin-bottom: 5px;
+      color: var(--accent);
+    }
+
+    /* ── Collapsible Chart Sections ── */
+    .collapsible-section {
+      margin-bottom: var(--gap);
+    }
+    .collapsible-section > summary {
+      list-style: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      cursor: pointer;
+      padding: 8px 14px;
+      background: var(--bg-card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      user-select: none;
+      transition: color 0.15s;
+    }
+    .collapsible-section > summary::-webkit-details-marker { display: none; }
+    .collapsible-section > summary:hover { color: var(--text-primary); }
+    .collapsible-section[open] > summary { border-radius: var(--radius) var(--radius) 0 0; margin-bottom: 0; }
+    .collapsible-section .collapsible-body { padding-top: var(--gap); }
+
+    /* ── Mic Button ── */
+    .btn-mic {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 30px;
+      height: 30px;
+      border: 1px solid var(--border);
+      border-radius: 50%;
+      background: var(--bg-body);
+      cursor: pointer;
+      font-size: 14px;
+      transition: background 0.15s, border-color 0.15s;
+      flex-shrink: 0;
+    }
+    .btn-mic:hover { background: var(--accent-light); border-color: var(--accent); }
+    .btn-mic.recording { background: #ffeaea; border-color: var(--color-attention); animation: mic-pulse 1s infinite; }
+    @keyframes mic-pulse { 50% { opacity: 0.6; } }
+
     /* ── Enter Data Button ── */
     .btn-enter-data {
       display: inline-flex;
@@ -184,7 +270,7 @@
     /* ── KPI Row ── */
     .kpi-row {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(5, 1fr);
       gap: var(--gap);
       margin-bottom: var(--gap);
     }
@@ -1263,7 +1349,7 @@
       <div class="brand-mark">H<span style="font-size:10px">SA</span></div>
       <div class="brand-text">
         <h1>Health Strategic Advisor</h1>
-        <p>Healthspan Command Center &mdash; Patient Overview</p>
+        <p id="user-display-name">Healthspan Command Center &mdash; Patient Overview</p>
       </div>
     </div>
     <div class="header-controls">
@@ -1286,10 +1372,11 @@
       </div>
       <button class="btn-enter-data" onclick="dataEntry.openModal()">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
-        Enter My Data
+        About You
       </button>
       <span id="data-source-badge" class="data-source-badge using-sample">Using sample data</span>
       <div class="as-of">Last updated: <strong id="as-of-date" style="color:#fff;"></strong></div>
+      <button class="btn-logout" onclick="logout()">Sign Out</button>
     </div>
   </header>
 
@@ -1342,32 +1429,49 @@
     </div>
   </section>
 
-  <!-- Charts Row 1 -->
-  <div class="chart-grid">
+  <!-- Biomarker Trends (collapsible) -->
+  <details class="collapsible-section" id="trends-details">
+    <summary>📈 Biomarker Trends — click to expand</summary>
+    <div class="collapsible-body">
+      <div class="card">
+        <div class="card-title">Biomarker Trends</div>
+        <div class="card-subtitle">Key markers tracked over time vs. optimal targets</div>
+        <div class="chart-wrap"><canvas id="chart-trends"></canvas></div>
+      </div>
+    </div>
+  </details>
+
+  <!-- Dual Radar Charts -->
+  <div class="chart-grid" style="margin-bottom:var(--gap)">
     <div class="card">
-      <div class="card-title">Biomarker Trends</div>
-      <div class="card-subtitle">Key markers tracked over time vs. optimal targets</div>
-      <div class="chart-wrap"><canvas id="chart-trends"></canvas></div>
+      <div class="card-title">Biomarker Domains</div>
+      <div class="card-subtitle">Objective scores across all measured domains</div>
+      <div class="chart-wrap"><canvas id="chart-radar"></canvas></div>
     </div>
     <div class="card">
-      <div class="card-title">Health Domain Snapshot</div>
-      <div class="card-subtitle">Relative performance across all domains (% of optimal)</div>
-      <div class="chart-wrap"><canvas id="chart-radar"></canvas></div>
+      <div class="card-title">Wellbeing Self-Assessment</div>
+      <div class="card-subtitle">Your subjective ratings from the About You tab</div>
+      <div class="chart-wrap"><canvas id="chart-radar-wellbeing"></canvas></div>
     </div>
   </div>
 
-  <!-- Charts Row 2 -->
-  <div class="chart-grid-3">
-    <div class="card">
-      <div class="card-title">Daily Recovery Stack</div>
-      <div class="card-subtitle">Sleep quality &amp; HRV over the last 30 days</div>
-      <div class="chart-wrap"><canvas id="chart-daily"></canvas></div>
+  <!-- Daily Recovery (collapsible) -->
+  <details class="collapsible-section" id="daily-details">
+    <summary>💤 30-Day Recovery Stack — click to expand</summary>
+    <div class="collapsible-body">
+      <div class="card">
+        <div class="card-title">Daily Recovery Stack</div>
+        <div class="card-subtitle">Sleep quality &amp; HRV over the last 30 days</div>
+        <div class="chart-wrap"><canvas id="chart-daily"></canvas></div>
+      </div>
     </div>
-    <div class="card">
-      <div class="card-title">Top Optimization Levers</div>
-      <div class="card-subtitle">Highest-impact areas to improve your score</div>
-      <div class="chart-wrap-sm"><canvas id="chart-priorities"></canvas></div>
-    </div>
+  </details>
+
+  <!-- Optimization Priorities -->
+  <div class="card" style="margin-bottom:var(--gap)">
+    <div class="card-title">Top Optimization Levers</div>
+    <div class="card-subtitle">Highest-impact areas to improve your score</div>
+    <div class="chart-wrap-sm"><canvas id="chart-priorities"></canvas></div>
   </div>
 
   <!-- Biomarker Table -->
@@ -1412,32 +1516,8 @@
       </div>
     </div>
 
-    <!-- Access Gate -->
-    <div class="ai-gate" id="aiGate">
-      <div class="ai-gate-icon">
-        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM12 17c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1s3.1 1.39 3.1 3.1v2z"/></svg>
-      </div>
-      <h3>Demo Access Required</h3>
-      <p>This AI analysis feature is available to Health SA demo participants. Enter your access code below to unlock it.</p>
-      <div class="ai-gate-input-row">
-        <input
-          type="text"
-          class="ai-gate-input"
-          id="aiGateInput"
-          placeholder="ENTER CODE"
-          maxlength="20"
-          autocomplete="off"
-          spellcheck="false"
-          onkeydown="if(event.key==='Enter') aiPanel.checkCode()"
-        />
-        <button class="ai-gate-btn" onclick="aiPanel.checkCode()">Unlock</button>
-      </div>
-      <div class="ai-gate-error" id="aiGateError"></div>
-      <div class="ai-gate-hint">Contact Health SA for your personal access code</div>
-    </div>
-
-    <!-- Panel Content (locked until code entered) -->
-    <div class="ai-panel-content" id="aiPanelContent">
+    <!-- Panel Content (unlocked via Supabase session) -->
+    <div class="ai-panel-content unlocked" id="aiPanelContent">
 
 
     <!-- Generate Button -->
@@ -1496,21 +1576,10 @@
   <div class="modal-container" role="dialog" aria-modal="true" aria-labelledby="modal-title">
     <div class="modal-header">
       <div>
-        <div class="modal-title" id="modal-title">Enter Your Lab Data</div>
-        <div class="modal-subtitle">Values you enter will update the dashboard in real time</div>
+        <div class="modal-title" id="modal-title">About You</div>
+        <div class="modal-subtitle">Your profile, goals, and health data — saved to your account</div>
       </div>
       <button class="modal-close-btn" onclick="dataEntry.closeModal()" aria-label="Close">&times;</button>
-    </div>
-
-    <div class="modal-meta">
-      <div class="modal-field-group">
-        <label for="patient-name">Patient Name</label>
-        <input type="text" id="patient-name" placeholder="e.g. Jane Smith">
-      </div>
-      <div class="modal-field-group">
-        <label for="lab-date">Last Lab Date</label>
-        <input type="date" id="lab-date">
-      </div>
     </div>
 
     <div class="modal-tabs" id="modal-tabs"></div>
@@ -1527,6 +1596,121 @@
 </div>
 
 <script>
+// ─── SUPABASE + AUTH ─────────────────────────────────────────────────────────
+
+const SUPABASE_URL      = 'https://ztubxangxtrbzrhxscqz.supabase.co';
+const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY'; // ← Replace with your anon key
+
+let _supabase, currentUser;
+try {
+  _supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+} catch(e) { console.warn('Supabase init error:', e); }
+
+async function initAuth() {
+  if (!_supabase) return;
+  try {
+    const { data: { session } } = await _supabase.auth.getSession();
+    if (!session) { window.location.href = 'index.html'; return; }
+    currentUser = session.user;
+    // Display name from localStorage (set by index.html on login/signup)
+    const firstName = localStorage.getItem('healthsa_first_name') || '';
+    if (firstName) {
+      document.getElementById('user-display-name').textContent = 'Welcome back, ' + firstName;
+    } else {
+      // Try to load from profiles table
+      try {
+        const { data: profile } = await _supabase.from('profiles').select('first_name').eq('id', currentUser.id).single();
+        if (profile?.first_name) {
+          document.getElementById('user-display-name').textContent = 'Welcome back, ' + profile.first_name;
+          localStorage.setItem('healthsa_first_name', profile.first_name);
+        }
+      } catch {}
+    }
+    await loadUserData();
+  } catch(e) {
+    console.warn('Auth check failed:', e);
+    // If auth fails (e.g. placeholder key), continue with sample data
+  }
+}
+
+async function logout() {
+  if (_supabase) await _supabase.auth.signOut();
+  localStorage.removeItem('healthsa_first_name');
+  window.location.href = 'index.html';
+}
+
+async function loadUserData() {
+  if (!_supabase || !currentUser) return;
+  try {
+    // Most recent lab results
+    const { data: labs } = await _supabase.from('lab_results')
+      .select('*').eq('user_id', currentUser.id)
+      .order('lab_date', { ascending: false }).limit(1);
+    if (labs && labs.length > 0 && labs[0].values) {
+      dataEntry._applyValues(labs[0].values);
+      dataEntry._updateBadge(true, null, labs[0].lab_date);
+      if (window.dash) dash.refreshAll();
+    }
+    // Goals for wellbeing radar
+    const { data: goals } = await _supabase.from('user_goals')
+      .select('*').eq('user_id', currentUser.id).limit(1);
+    if (goals && goals.length > 0) {
+      window._supabaseGoals = goals[0];
+      if (window.dash) dash.updateWellbeingRadar();
+    }
+  } catch(e) { console.warn('loadUserData error:', e); }
+}
+
+// ─── TOOLTIP SYSTEM ──────────────────────────────────────────────────────────
+
+(function() {
+  let _tipTimer = null;
+  const tip = document.createElement('div');
+  tip.className = 'bm-tooltip';
+  tip.id = 'bm-tooltip';
+  document.body.appendChild(tip);
+
+  document.addEventListener('mouseover', e => {
+    const row = e.target.closest('tr[data-layman]');
+    if (!row) return;
+    _tipTimer = setTimeout(() => {
+      const name = row.dataset.marker || '';
+      const text = row.dataset.layman || '';
+      tip.innerHTML = `<div class="bm-tooltip-title">${name}</div>${text}`;
+      tip.style.display = 'block';
+    }, 400);
+  });
+  document.addEventListener('mousemove', e => {
+    if (tip.style.display === 'block') {
+      const x = Math.min(e.clientX + 14, window.innerWidth - 340);
+      const y = Math.min(e.clientY + 14, window.innerHeight - 140);
+      tip.style.left = x + 'px';
+      tip.style.top  = y + 'px';
+    }
+  });
+  document.addEventListener('mouseout', e => {
+    const row = e.target.closest('tr[data-layman]');
+    if (row) { clearTimeout(_tipTimer); tip.style.display = 'none'; }
+  });
+})();
+
+// ─── VOICE DICTATION HELPER ──────────────────────────────────────────────────
+
+function startDictation(targetEl, onResult, btnEl) {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { alert('Voice input not supported in this browser. Try Chrome.'); return; }
+  const r = new SR();
+  r.lang = 'en-US'; r.interimResults = false; r.maxAlternatives = 1;
+  if (btnEl) btnEl.classList.add('recording');
+  r.onresult = e => {
+    onResult(e.results[0][0].transcript);
+    if (btnEl) btnEl.classList.remove('recording');
+  };
+  r.onerror = () => { if (btnEl) btnEl.classList.remove('recording'); };
+  r.onend   = () => { if (btnEl) btnEl.classList.remove('recording'); };
+  r.start();
+}
+
 // ─── DATA ───────────────────────────────────────────────────────────────────
 
 const MONTHS_6 = ['Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr'];
@@ -1556,10 +1740,10 @@ const BIOMARKER_DEFS = [
   { id: 'igf1',               tab: 'Hormonal',       label: 'IGF-1',              unit: 'ng/mL',      sample: 168,  hint: 'Optimal 150–220' },
   { id: 'tsh',                tab: 'Hormonal',       label: 'TSH',                unit: 'mIU/L',      sample: 1.8,  hint: 'Optimal 1.0–2.5' },
   { id: 'estradiol',          tab: 'Hormonal',       label: 'Estradiol (E2)',      unit: 'pg/mL',      sample: 22,   hint: 'Optimal 20–30 (men)' },
+  { id: 'ft4',                tab: 'Hormonal',       label: 'Free T4 (FT4)',       unit: 'ng/dL',      sample: 1.2,  hint: 'Optimal 0.9–1.7' },
   { id: 'hba1c',              tab: 'Metabolic',      label: 'HbA1c',              unit: '%',          sample: 5.3,  hint: 'Optimal ≤ 5.3' },
   { id: 'fasting_insulin',    tab: 'Metabolic',      label: 'Fasting Insulin',    unit: 'µIU/mL',     sample: 6.2,  hint: 'Optimal ≤ 5' },
   { id: 'fasting_glucose',    tab: 'Metabolic',      label: 'Fasting Glucose',    unit: 'mg/dL',      sample: 89,   hint: 'Optimal 70–90' },
-  { id: 'homa_ir',            tab: 'Metabolic',      label: 'HOMA-IR',            unit: 'index',      sample: 1.38, hint: 'Optimal ≤ 1.0' },
   { id: 'uric_acid',          tab: 'Metabolic',      label: 'Uric Acid',          unit: 'mg/dL',      sample: 5.2,  hint: 'Optimal 3.0–5.5' },
   { id: 'alt',                tab: 'Metabolic',      label: 'ALT',                unit: 'U/L',        sample: 22,   hint: 'Optimal ≤ 25' },
   { id: 'ast',                tab: 'Metabolic',      label: 'AST',                unit: 'U/L',        sample: 24,   hint: 'Optimal ≤ 25' },
@@ -1567,6 +1751,8 @@ const BIOMARKER_DEFS = [
   { id: 'bun',                tab: 'Metabolic',      label: 'BUN',                unit: 'mg/dL',      sample: 16,   hint: 'Optimal 10–20' },
   { id: 'creatinine',         tab: 'Metabolic',      label: 'Creatinine',         unit: 'mg/dL',      sample: 0.95, hint: 'Optimal 0.7–1.1' },
   { id: 'egfr',               tab: 'Metabolic',      label: 'eGFR',               unit: 'mL/min/1.73m²', sample: 92, hint: 'Optimal ≥ 90' },
+  { id: 'vitamin_d',          tab: 'Metabolic',      label: 'Vitamin D (25-OH)',   unit: 'ng/mL',      sample: 42,   hint: 'Optimal 40–60' },
+  { id: 'ferritin',           tab: 'Metabolic',      label: 'Ferritin',            unit: 'ng/mL',      sample: 85,   hint: 'Optimal 50–150 (men)' },
   { id: 'vo2_max',            tab: 'Fitness',        label: 'VO2 Max',            unit: 'mL/kg/min',  sample: 48,   hint: 'Optimal ≥ 50' },
   { id: 'resting_hr',         tab: 'Fitness',        label: 'Resting HR',         unit: 'bpm',        sample: 52,   hint: 'Optimal 40–55' },
   { id: 'hrv_avg',            tab: 'Fitness',        label: 'HRV (avg 30d)',      unit: 'ms',         sample: 72,   hint: 'Optimal ≥ 70' },
@@ -1576,41 +1762,44 @@ const BIOMARKER_DEFS = [
 
 const BIOMARKERS = [
   // Cardiovascular
-  { category:'Cardiovascular', marker:'ApoB',            unit:'mg/dL',     current:82,   optimal_low:0,   optimal_high:70,   good_high:90,   good_low:null, higher_better:false, trend:'down',    note:'Trending toward optimal — currently borderline' },
-  { category:'Cardiovascular', marker:'LDL-C',           unit:'mg/dL',     current:105,  optimal_low:0,   optimal_high:70,   good_high:100,  good_low:null, higher_better:false, trend:'down',    note:'Above optimal; ApoB is primary CV risk marker' },
-  { category:'Cardiovascular', marker:'HDL-C',           unit:'mg/dL',     current:62,   optimal_low:60,  optimal_high:100,  good_high:null, good_low:50,   higher_better:true,  trend:'neutral', note:'In optimal zone — protective cholesterol fraction' },
-  { category:'Cardiovascular', marker:'Triglycerides',   unit:'mg/dL',     current:88,   optimal_low:0,   optimal_high:80,   good_high:100,  good_low:null, higher_better:false, trend:'down',    note:'Slightly above optimal; dietary carb intake driver' },
-  { category:'Cardiovascular', marker:'hsCRP',           unit:'mg/L',      current:0.8,  optimal_low:0,   optimal_high:1.0,  good_high:2.0,  good_low:null, higher_better:false, trend:'neutral', note:'Excellent — low systemic inflammation' },
-  { category:'Cardiovascular', marker:'Lp(a)',           unit:'nmol/L',    current:28,   optimal_low:0,   optimal_high:75,   good_high:null, good_low:null, higher_better:false, trend:'neutral', note:'Genetically determined — monitor annually' },
+  { category:'Cardiovascular', marker:'ApoB',            unit:'mg/dL',     current:82,   optimal_low:0,   optimal_high:70,   good_high:90,   good_low:null, higher_better:false, trend:'down',    note:'Trending toward optimal — currently borderline',            layman:'ApoB counts the number of LDL particles carrying cholesterol. More particles means more chances for plaque to form in arteries — a better CV risk predictor than LDL-C alone.' },
+  { category:'Cardiovascular', marker:'LDL-C',           unit:'mg/dL',     current:105,  optimal_low:0,   optimal_high:70,   good_high:100,  good_low:null, higher_better:false, trend:'down',    note:'Above optimal; ApoB is primary CV risk marker',             layman:'LDL cholesterol measures the total amount of cholesterol carried in "bad" particles. Persistently high levels drive plaque buildup in arteries over decades.' },
+  { category:'Cardiovascular', marker:'HDL-C',           unit:'mg/dL',     current:62,   optimal_low:60,  optimal_high:100,  good_high:null, good_low:50,   higher_better:true,  trend:'neutral', note:'In optimal zone — protective cholesterol fraction',          layman:'HDL is the "good" cholesterol that carries excess cholesterol back to the liver for removal. Higher is better — it actively protects your arteries.' },
+  { category:'Cardiovascular', marker:'Triglycerides',   unit:'mg/dL',     current:88,   optimal_low:0,   optimal_high:80,   good_high:100,  good_low:null, higher_better:false, trend:'down',    note:'Slightly above optimal; dietary carb intake driver',         layman:'Blood fats derived mainly from dietary carbohydrates and alcohol. Elevated levels reflect poor metabolic health and raise cardiovascular risk independently of cholesterol.' },
+  { category:'Cardiovascular', marker:'hsCRP',           unit:'mg/L',      current:0.8,  optimal_low:0,   optimal_high:1.0,  good_high:2.0,  good_low:null, higher_better:false, trend:'neutral', note:'Excellent — low systemic inflammation',                      layman:'A highly sensitive marker of systemic inflammation. Even mildly elevated levels chronically accelerate atherosclerosis — sometimes called the "silent killer" of cardiovascular health.' },
+  { category:'Cardiovascular', marker:'Lp(a)',           unit:'nmol/L',    current:28,   optimal_low:0,   optimal_high:75,   good_high:null, good_low:null, higher_better:false, trend:'neutral', note:'Genetically determined — monitor annually',                  layman:'A genetically inherited lipoprotein that independently raises heart attack and stroke risk. Mostly unmodifiable by lifestyle — knowing your number is the first step.' },
   // Hormonal
-  { category:'Hormonal',       marker:'Total Testosterone', unit:'ng/dL',  current:620,  optimal_low:700, optimal_high:1000, good_high:null, good_low:500,  higher_better:true,  trend:'up',      note:'Below optimal — consider lifestyle optimization first' },
-  { category:'Hormonal',       marker:'Free Testosterone',  unit:'pg/mL',  current:14.2, optimal_low:15,  optimal_high:25,   good_high:null, good_low:10,   higher_better:true,  trend:'up',      note:'Low-normal; SHBG binding may be elevated' },
-  { category:'Hormonal',       marker:'DHEA-S',             unit:'µg/dL',  current:285,  optimal_low:300, optimal_high:500,  good_high:null, good_low:200,  higher_better:true,  trend:'neutral', note:'Slightly below optimal for age-matched peak' },
-  { category:'Hormonal',       marker:'Cortisol (AM)',      unit:'µg/dL',  current:16,   optimal_low:10,  optimal_high:18,   good_high:22,   good_low:null, higher_better:false, trend:'neutral', note:'Well-regulated; normal AM cortisol awakening response' },
-  { category:'Hormonal',       marker:'Free T3',            unit:'pg/mL',  current:3.4,  optimal_low:3.2, optimal_high:4.2,  good_high:null, good_low:2.8,  higher_better:true,  trend:'neutral', note:'Active thyroid hormone in optimal zone' },
-  { category:'Hormonal',       marker:'IGF-1',              unit:'ng/mL',  current:168,  optimal_low:150, optimal_high:220,  good_high:null, good_low:100,  higher_better:true,  trend:'up',      note:'Anabolic driver in range — supports muscle and cognition' },
-  { category:'Hormonal',       marker:'TSH',                unit:'mIU/L',  current:1.8,  optimal_low:1.0, optimal_high:2.5,  good_high:3.5,  good_low:0.5,  higher_better:false, trend:'neutral', note:'Optimal thyroid stimulation range' },
-  { category:'Hormonal',       marker:'Estradiol (E2)',      unit:'pg/mL',  current:22,   optimal_low:20,  optimal_high:30,   good_high:40,   good_low:15,   higher_better:false, trend:'neutral', note:'Balanced — critical for bone density and cognition in men' },
+  { category:'Hormonal',       marker:'Total Testosterone', unit:'ng/dL',  current:620,  optimal_low:700, optimal_high:1000, good_high:null, good_low:500,  higher_better:true,  trend:'up',      note:'Below optimal — consider lifestyle optimization first',      layman:'The primary male sex hormone driving muscle mass, libido, energy, cognition, and bone density. Declines roughly 1% per year after age 30.' },
+  { category:'Hormonal',       marker:'Free Testosterone',  unit:'pg/mL',  current:14.2, optimal_low:15,  optimal_high:25,   good_high:null, good_low:10,   higher_better:true,  trend:'up',      note:'Low-normal; SHBG binding may be elevated',                  layman:'The biologically active fraction of testosterone not bound to proteins. More meaningful than total T when evaluating true hormonal status — what the body can actually use.' },
+  { category:'Hormonal',       marker:'DHEA-S',             unit:'µg/dL',  current:285,  optimal_low:300, optimal_high:500,  good_high:null, good_low:200,  higher_better:true,  trend:'neutral', note:'Slightly below optimal for age-matched peak',               layman:'A precursor hormone made by your adrenal glands, peaking in your 20s–30s. Supports immune function, mood, energy, and serves as a building block for testosterone.' },
+  { category:'Hormonal',       marker:'Cortisol (AM)',      unit:'µg/dL',  current:16,   optimal_low:10,  optimal_high:18,   good_high:22,   good_low:null, higher_better:false, trend:'neutral', note:'Well-regulated; normal AM cortisol awakening response',      layman:'Your primary stress hormone, naturally peaking in the morning to activate the body for the day. Chronically elevated levels accelerate aging and impair recovery.' },
+  { category:'Hormonal',       marker:'Free T3',            unit:'pg/mL',  current:3.4,  optimal_low:3.2, optimal_high:4.2,  good_high:null, good_low:2.8,  higher_better:true,  trend:'neutral', note:'Active thyroid hormone in optimal zone',                    layman:'The active form of thyroid hormone that drives your metabolism, energy levels, and body temperature regulation. Most of the real metabolic work happens here.' },
+  { category:'Hormonal',       marker:'IGF-1',              unit:'ng/mL',  current:168,  optimal_low:150, optimal_high:220,  good_high:null, good_low:100,  higher_better:true,  trend:'up',      note:'Anabolic driver in range — supports muscle and cognition',  layman:'Growth factor released by the liver in response to growth hormone. Drives muscle repair, fat metabolism, and cognitive function — a key longevity lever.' },
+  { category:'Hormonal',       marker:'TSH',                unit:'mIU/L',  current:1.8,  optimal_low:1.0, optimal_high:2.5,  good_high:3.5,  good_low:0.5,  higher_better:false, trend:'neutral', note:'Optimal thyroid stimulation range',                          layman:'Thyroid-stimulating hormone sent by the brain to tell the thyroid how hard to work. High TSH means a sluggish thyroid; low TSH means it may be overactive.' },
+  { category:'Hormonal',       marker:'Estradiol (E2)',      unit:'pg/mL',  current:22,   optimal_low:20,  optimal_high:30,   good_high:40,   good_low:15,   higher_better:false, trend:'neutral', note:'Balanced — critical for bone density and cognition in men',  layman:'The primary estrogen, important even in men for bone density, brain health, libido, and joint lubrication. Too high or too low both cause problems.' },
+  { category:'Hormonal',       marker:'Free T4 (FT4)',       unit:'ng/dL',  current:1.2,  optimal_low:0.9, optimal_high:1.7,  good_high:null, good_low:0.7,  higher_better:true,  trend:'neutral', note:'Thyroid storage hormone — converts to active T3',            layman:'The storage form of thyroid hormone, converted to active T3 in tissues. Evaluating both T3 and T4 gives a complete picture of thyroid output and conversion efficiency.' },
   // Metabolic
-  { category:'Metabolic',      marker:'HbA1c',              unit:'%',       current:5.3,  optimal_low:0,   optimal_high:5.3,  good_high:5.6,  good_low:null, higher_better:false, trend:'neutral', note:'Top of optimal range — fasting insulin more sensitive' },
-  { category:'Metabolic',      marker:'Fasting Insulin',    unit:'µIU/mL',  current:6.2,  optimal_low:0,   optimal_high:5,    good_high:8,    good_low:null, higher_better:false, trend:'down',    note:'Slightly elevated; time-restricted eating may help' },
-  { category:'Metabolic',      marker:'Fasting Glucose',    unit:'mg/dL',   current:89,   optimal_low:70,  optimal_high:90,   good_high:99,   good_low:null, higher_better:false, trend:'neutral', note:'Excellent fasting glucose — metabolically flexible' },
-  { category:'Metabolic',      marker:'HOMA-IR',            unit:'index',   current:1.38, optimal_low:0,   optimal_high:1.0,  good_high:1.5,  good_low:null, higher_better:false, trend:'down',    note:'Borderline; reflects mild insulin resistance pattern' },
-  { category:'Metabolic',      marker:'Uric Acid',          unit:'mg/dL',   current:5.2,  optimal_low:3.0, optimal_high:5.5,  good_high:6.0,  good_low:null, higher_better:false, trend:'neutral', note:'Within optimal range; monitor with high protein intake' },
+  { category:'Metabolic',      marker:'HbA1c',              unit:'%',       current:5.3,  optimal_low:0,   optimal_high:5.3,  good_high:5.6,  good_low:null, higher_better:false, trend:'neutral', note:'Top of optimal range — fasting insulin more sensitive',     layman:'A 3-month blood sugar average showing how well your body manages glucose. Even subtle elevations above 5.3% signal early insulin resistance, years before diabetes develops.' },
+  { category:'Metabolic',      marker:'Fasting Insulin',    unit:'µIU/mL',  current:6.2,  optimal_low:0,   optimal_high:5,    good_high:8,    good_low:null, higher_better:false, trend:'down',    note:'Slightly elevated; time-restricted eating may help',        layman:'Often more telling than glucose alone. Elevated fasting insulin is the earliest metabolic red flag — it rises years before blood sugar does. The canary in the coal mine.' },
+  { category:'Metabolic',      marker:'Fasting Glucose',    unit:'mg/dL',   current:89,   optimal_low:70,  optimal_high:90,   good_high:99,   good_low:null, higher_better:false, trend:'neutral', note:'Excellent fasting glucose — metabolically flexible',        layman:'Blood sugar after an overnight fast. Optimally below 90 mg/dL for longevity — well below the standard lab "normal" of 100. A key window into metabolic flexibility.' },
+  { category:'Metabolic',      marker:'HOMA-IR',            unit:'index',   current:1.38, optimal_low:0,   optimal_high:1.0,  good_high:1.5,  good_low:null, higher_better:false, trend:'down',    note:'Borderline; reflects mild insulin resistance pattern',      layman:'Calculated from your insulin and glucose, this index quantifies insulin resistance — essentially how hard your pancreas has to work just to maintain normal blood sugar.' },
+  { category:'Metabolic',      marker:'Uric Acid',          unit:'mg/dL',   current:5.2,  optimal_low:3.0, optimal_high:5.5,  good_high:6.0,  good_low:null, higher_better:false, trend:'neutral', note:'Within optimal range; monitor with high protein intake',    layman:'A byproduct of purine metabolism (from red meat, seafood, alcohol). Elevated levels are linked to gout, kidney stones, metabolic syndrome, and cardiovascular risk.' },
   // Liver
-  { category:'Metabolic',      marker:'ALT',                unit:'U/L',     current:22,   optimal_low:0,   optimal_high:25,   good_high:40,   good_low:null, higher_better:false, trend:'neutral', note:'Hepatic enzyme in optimal range' },
-  { category:'Metabolic',      marker:'AST',                unit:'U/L',     current:24,   optimal_low:0,   optimal_high:25,   good_high:40,   good_low:null, higher_better:false, trend:'neutral', note:'AST:ALT ratio normal — no hepatic stress signal' },
-  { category:'Metabolic',      marker:'GGT',                unit:'U/L',     current:18,   optimal_low:0,   optimal_high:20,   good_high:30,   good_low:null, higher_better:false, trend:'neutral', note:'Excellent — sensitive marker for liver stress and alcohol' },
+  { category:'Metabolic',      marker:'ALT',                unit:'U/L',     current:22,   optimal_low:0,   optimal_high:25,   good_high:40,   good_low:null, higher_better:false, trend:'neutral', note:'Hepatic enzyme in optimal range',                            layman:'A liver enzyme that leaks into the blood when liver cells are under stress or damaged. The most sensitive early marker of fatty liver disease — often rises before symptoms.' },
+  { category:'Metabolic',      marker:'AST',                unit:'U/L',     current:24,   optimal_low:0,   optimal_high:25,   good_high:40,   good_low:null, higher_better:false, trend:'neutral', note:'AST:ALT ratio normal — no hepatic stress signal',           layman:'Another liver enzyme; when elevated alongside ALT it signals hepatic stress. Note: intense exercise can also raise AST temporarily — context matters.' },
+  { category:'Metabolic',      marker:'GGT',                unit:'U/L',     current:18,   optimal_low:0,   optimal_high:20,   good_high:30,   good_low:null, higher_better:false, trend:'neutral', note:'Excellent — sensitive marker for liver stress and alcohol',  layman:'A sensitive liver enzyme often elevated by alcohol, fatty liver, and medication toxicity. Frequently rises before ALT or AST in early liver stress — a leading indicator.' },
   // Renal
-  { category:'Metabolic',      marker:'BUN',                unit:'mg/dL',   current:16,   optimal_low:10,  optimal_high:20,   good_high:25,   good_low:null, higher_better:false, trend:'neutral', note:'Kidney filtration in normal range' },
-  { category:'Metabolic',      marker:'Creatinine',         unit:'mg/dL',   current:0.95, optimal_low:0.7, optimal_high:1.1,  good_high:1.3,  good_low:null, higher_better:false, trend:'neutral', note:'Muscle turnover and renal clearance normal' },
-  { category:'Metabolic',      marker:'eGFR',               unit:'mL/min',  current:92,   optimal_low:90,  optimal_high:120,  good_high:null, good_low:60,   higher_better:true,  trend:'neutral', note:'Excellent kidney filtration rate' },
+  { category:'Metabolic',      marker:'BUN',                unit:'mg/dL',   current:16,   optimal_low:10,  optimal_high:20,   good_high:25,   good_low:null, higher_better:false, trend:'neutral', note:'Kidney filtration in normal range',                          layman:'Blood urea nitrogen reflects both kidney filtration capacity and protein metabolism. Both very high and very low values can signal imbalances worth investigating.' },
+  { category:'Metabolic',      marker:'Creatinine',         unit:'mg/dL',   current:0.95, optimal_low:0.7, optimal_high:1.1,  good_high:1.3,  good_low:null, higher_better:false, trend:'neutral', note:'Muscle turnover and renal clearance normal',                layman:'A muscle waste product cleared by the kidneys. A stable, reliable marker of kidney filtration — rising creatinine is often an early signal of kidney function decline.' },
+  { category:'Metabolic',      marker:'eGFR',               unit:'mL/min',  current:92,   optimal_low:90,  optimal_high:120,  good_high:null, good_low:60,   higher_better:true,  trend:'neutral', note:'Excellent kidney filtration rate',                           layman:'Estimated glomerular filtration rate — how many mL/min your kidneys filter. Above 90 is optimal; steady decline is a sign of accelerated kidney aging.' },
+  { category:'Metabolic',      marker:'Vitamin D (25-OH)',  unit:'ng/mL',   current:42,   optimal_low:40,  optimal_high:60,   good_high:null, good_low:30,   higher_better:true,  trend:'neutral', note:'Near optimal — maintain with supplementation',              layman:'The storage form of vitamin D, essential for immune function, bone density, mood regulation, and testosterone production. Most adults in modern life are suboptimal.' },
+  { category:'Metabolic',      marker:'Ferritin',           unit:'ng/mL',   current:85,   optimal_low:50,  optimal_high:150,  good_high:200,  good_low:30,   higher_better:true,  trend:'neutral', note:'Optimal range — good iron stores',                          layman:'The body\'s primary iron storage protein. Too low risks iron deficiency and fatigue; too high can signal inflammation, liver disease, or hereditary hemochromatosis.' },
   // Fitness
-  { category:'Fitness',        marker:'VO2 Max',            unit:'mL/kg/min', current:48, optimal_low:50,  optimal_high:70,   good_high:null, good_low:45,   higher_better:true,  trend:'up',      note:'Near optimal — Zone 2 training priority' },
-  { category:'Fitness',        marker:'Resting HR',         unit:'bpm',     current:52,   optimal_low:40,  optimal_high:55,   good_high:65,   good_low:null, higher_better:false, trend:'down',    note:'Good aerobic conditioning marker' },
-  { category:'Fitness',        marker:'HRV (avg 30d)',      unit:'ms',      current:72,   optimal_low:70,  optimal_high:120,  good_high:null, good_low:50,   higher_better:true,  trend:'up',      note:'Just crossed into optimal — recovery trending well' },
-  { category:'Fitness',        marker:'Sleep Score',        unit:'/100',    current:76,   optimal_low:80,  optimal_high:100,  good_high:null, good_low:65,   higher_better:true,  trend:'up',      note:'Below optimal; sleep architecture review recommended' },
-  { category:'Fitness',        marker:'Body Fat %',         unit:'%',       current:18,   optimal_low:10,  optimal_high:16,   good_high:20,   good_low:null, higher_better:false, trend:'down',    note:'Slightly above optimal — reduce visceral adiposity' },
+  { category:'Fitness',        marker:'VO2 Max',            unit:'mL/kg/min', current:48, optimal_low:50,  optimal_high:70,   good_high:null, good_low:45,   higher_better:true,  trend:'up',      note:'Near optimal — Zone 2 training priority',                   layman:'Your aerobic capacity — the gold standard for cardiovascular fitness and the single strongest predictor of longevity. Every 1-unit increase cuts all-cause mortality risk ~2–3%.' },
+  { category:'Fitness',        marker:'Resting HR',         unit:'bpm',     current:52,   optimal_low:40,  optimal_high:55,   good_high:65,   good_low:null, higher_better:false, trend:'down',    note:'Good aerobic conditioning marker',                          layman:'Your heart rate at rest reflects cardiovascular efficiency. A lower resting HR means your heart pumps more blood per beat — a sign of a strong, well-conditioned heart.' },
+  { category:'Fitness',        marker:'HRV (avg 30d)',      unit:'ms',      current:72,   optimal_low:70,  optimal_high:120,  good_high:null, good_low:50,   higher_better:true,  trend:'up',      note:'Just crossed into optimal — recovery trending well',        layman:'Heart rate variability measures the millisecond variation between heartbeats. Higher HRV reflects a well-balanced autonomic nervous system and better recovery capacity.' },
+  { category:'Fitness',        marker:'Sleep Score',        unit:'/100',    current:76,   optimal_low:80,  optimal_high:100,  good_high:null, good_low:65,   higher_better:true,  trend:'up',      note:'Below optimal; sleep architecture review recommended',      layman:'A wearable-aggregated score reflecting sleep duration, REM, deep sleep stages, and continuity. Poor sleep accelerates aging across every domain — it\'s non-negotiable.' },
+  { category:'Fitness',        marker:'Body Fat %',         unit:'%',       current:18,   optimal_low:10,  optimal_high:16,   good_high:20,   good_low:null, higher_better:false, trend:'down',    note:'Slightly above optimal — reduce visceral adiposity',        layman:'The proportion of your body mass that\'s fat. Visceral fat (around organs) carries most of the metabolic risk — it\'s inflammatory and hormonally active even at moderate levels.' },
 ];
 
 // 30 days of daily wearable data
@@ -1703,12 +1892,24 @@ class Dashboard {
   init() {
     document.getElementById('as-of-date').textContent = 'April 30, 2026';
     this.renderKPIs();
-    this.renderTrendsChart();
     this.renderRadarChart();
-    this.renderDailyChart();
+    this.renderWellbeingRadar();
     this.renderPrioritiesChart();
     this.renderTable();
     this.wireTableSort();
+    // Lazy init for collapsed sections
+    document.getElementById('trends-details').addEventListener('toggle', () => {
+      if (document.getElementById('trends-details').open && !this._trendsInit) {
+        this.renderTrendsChart();
+        this._trendsInit = true;
+      }
+    });
+    document.getElementById('daily-details').addEventListener('toggle', () => {
+      if (document.getElementById('daily-details').open && !this._dailyInit) {
+        this.renderDailyChart();
+        this._dailyInit = true;
+      }
+    });
   }
 
   applyFilters() {
@@ -1722,6 +1923,7 @@ class Dashboard {
   refreshAll() {
     this.renderKPIs();
     this.updateRadarChart();
+    this.updateWellbeingRadar();
     this.renderTable();
   }
 
@@ -1848,10 +2050,9 @@ class Dashboard {
       const pts = statusPts[getStatus(bm)] || 30;
       if (cats[bm.category]) cats[bm.category].push(pts);
     });
-    // Mental Health and Cancer Screening: from subjective goals data or defaults
-    const goals = JSON.parse(localStorage.getItem('healthsa_goals') || '{}');
-    const mentalHealth     = goals.mental_health_score     ? parseInt(goals.mental_health_score) * 10 : 70;
-    const cancerScreening  = goals.cancer_screening_score  ? parseInt(goals.cancer_screening_score) * 10 : 65;
+    const goals = window._supabaseGoals || {};
+    const mentalHealth    = goals.mental_spiritual    ? Math.min(100, goals.mental_spiritual * 10)    : 70;
+    const cancerScreening = 65; // updated when cancer_screening data is loaded
     return [
       avg(cats.Cardiovascular),
       avg(cats.Hormonal),
@@ -1866,6 +2067,67 @@ class Dashboard {
     if (!this.charts.radar) return;
     this.charts.radar.data.datasets[0].data = this._computeRadarData();
     this.charts.radar.update();
+  }
+
+  renderWellbeingRadar() {
+    const ctx = document.getElementById('chart-radar-wellbeing').getContext('2d');
+    this.charts.wellbeing = new Chart(ctx, {
+      type: 'radar',
+      data: {
+        labels: ['Physical Health', 'Nutrition', 'Mental & Spiritual', 'Sexual & Relationship', 'Cognitive', 'Low Pain'],
+        datasets: [{
+          label: 'Self-Assessment',
+          data: this._computeWellbeingData(),
+          borderColor: '#e76f51',
+          backgroundColor: 'rgba(231,111,81,0.12)',
+          borderWidth: 2,
+          pointBackgroundColor: '#e76f51',
+          pointRadius: 4,
+        }, {
+          label: 'Target (100)',
+          data: [100,100,100,100,100,100],
+          borderColor: '#dee2e6',
+          backgroundColor: 'rgba(222,226,230,0.05)',
+          borderWidth: 1,
+          borderDash: [4,4],
+          pointRadius: 0,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position:'top', labels:{ usePointStyle:true, padding:14, font:{ size:11 } } }
+        },
+        scales: {
+          r: {
+            min: 0, max: 100,
+            ticks: { stepSize:25, font:{ size:10 }, color:'#adb5bd', backdropColor:'transparent' },
+            grid: { color:'#e9ecef' },
+            pointLabels: { font:{ size:11 }, color:'#495057' }
+          }
+        }
+      }
+    });
+  }
+
+  _computeWellbeingData() {
+    const g = window._supabaseGoals || {};
+    const s = v => v ? Math.min(100, v * 10) : 50;
+    return [
+      s(g.physical_health),
+      s(g.nutrition),
+      s(g.mental_spiritual),
+      s(g.sexual_relationship),
+      s(g.cognitive),
+      g.pain_level != null ? Math.max(0, (10 - g.pain_level) * 10) : 50,
+    ];
+  }
+
+  updateWellbeingRadar() {
+    if (!this.charts.wellbeing) return;
+    this.charts.wellbeing.data.datasets[0].data = this._computeWellbeingData();
+    this.charts.wellbeing.update();
   }
 
   // ── Daily Chart ──
@@ -1983,7 +2245,7 @@ class Dashboard {
       const trendCls = bm.higher_better
         ? (bm.trend === 'up' ? 'trend-up' : bm.trend === 'down' ? 'trend-down' : 'trend-neutral')
         : (bm.trend === 'down' ? 'trend-up' : bm.trend === 'up' ? 'trend-down' : 'trend-neutral');
-      return `<tr>
+      return `<tr data-layman="${(bm.layman||'').replace(/"/g,'&quot;')}" data-marker="${bm.marker}">
         <td><span class="category-badge ${catCls}">${bm.category}</span></td>
         <td><strong>${bm.marker}</strong></td>
         <td><strong>${bm.current}</strong> <span style="color:var(--text-secondary);font-size:11px">${bm.unit}</span></td>
@@ -2024,7 +2286,7 @@ const dataEntry = {
 
   _buildModal() {
     // Build tabs
-    const tabs = ['Cardiovascular', 'Hormonal', 'Metabolic', 'Fitness', 'My Goals', 'Paste Lab Text'];
+    const tabs = ['My Goals', 'Medical History', 'Vitals', 'Labs', 'Cancer Screening', 'Family History', 'Paste / Dictate'];
     const tabsEl = document.getElementById('modal-tabs');
     const panelsEl = document.getElementById('modal-tab-panels');
     tabsEl.innerHTML = '';
@@ -2042,46 +2304,119 @@ const dataEntry = {
       panel.className = 'modal-tab-panel' + (idx === 0 ? ' active' : '');
       panel.dataset.panel = tab;
 
-      if (tab === 'Paste Lab Text') {
+      if (tab === 'My Goals') {
         panel.innerHTML = `
           <div class="modal-paste-area">
-            <label for="lab-paste-text">Paste your lab report text below, then click "Parse Values"</label>
-            <textarea class="modal-paste-textarea" id="lab-paste-text" placeholder="Paste raw lab text here...&#10;e.g. ApoB 82 mg/dL, LDL 105, Testosterone 620 ng/dL..."></textarea>
-            <button class="btn-parse" onclick="dataEntry.parseLabText()">Parse Values</button>
-            <div class="parse-result-msg" id="parse-result-msg"></div>
+            <p style="font-size:13px;color:var(--text-secondary);margin-bottom:14px;">Rate each area 1–10. These drive your Wellbeing radar and personalize your AI analysis.</p>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+              ${[
+                {id:'goals-physical',  label:'Physical Health',         hint:'Energy, strength, endurance'},
+                {id:'goals-nutrition', label:'Nutrition',               hint:'Diet quality, habits, consistency'},
+                {id:'goals-mental',    label:'Mental & Spiritual',      hint:'Mood, stress, purpose, mindfulness'},
+                {id:'goals-sexual',    label:'Sexual & Relationship',   hint:'Libido, intimacy, partnership quality'},
+                {id:'goals-cognitive', label:'Cognitive Health',        hint:'Focus, memory, mental sharpness'},
+                {id:'goals-pain',      label:'Pain Level (1=none, 10=severe)', hint:'Higher score = worse pain'},
+              ].map(f => `
+                <div class="modal-field-group">
+                  <label style="display:flex;align-items:center;justify-content:space-between">
+                    <span>${f.label}</span>
+                    <button class="btn-mic" onclick="startDictation(document.getElementById('${f.id}'), v => { const n=parseInt(v); if(n>=1&&n<=10) document.getElementById('${f.id}').value=n; }, this)" title="Dictate">🎤</button>
+                  </label>
+                  <input type="number" id="${f.id}" min="1" max="10" step="1" placeholder="—" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:14px;">
+                  <div class="modal-input-hint">${f.hint}</div>
+                </div>`).join('')}
+            </div>
+            <div class="modal-field-group">
+              <label style="display:flex;align-items:center;justify-content:space-between">
+                <span>Narrative — what matters most to you?</span>
+                <button class="btn-mic" onclick="startDictation(document.getElementById('goals-narrative'), v => document.getElementById('goals-narrative').value += (document.getElementById('goals-narrative').value?' ':'')+v, this)" title="Dictate">🎤</button>
+              </label>
+              <textarea id="goals-narrative" class="modal-paste-textarea" style="min-height:90px;" placeholder="e.g. I'm a busy physician in my 50s who wants to stay sharp at work, be present for my kids, and play golf into my 70s..."></textarea>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;">
+              <div class="modal-field-group">
+                <label>Fitness Focus</label>
+                <input type="text" id="goals-fitness-focus" placeholder="e.g. Golf, running, cycling..." style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:14px;">
+              </div>
+              <div class="modal-field-group">
+                <label>Pain Notes</label>
+                <input type="text" id="goals-pain-notes" placeholder="e.g. Right knee, low back..." style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:14px;">
+              </div>
+            </div>
           </div>`;
-      } else if (tab === 'My Goals') {
+      } else if (tab === 'Medical History') {
         panel.innerHTML = `
           <div class="modal-paste-area">
-            <label for="goals-narrative" style="font-weight:600;margin-bottom:6px;display:block;">What matters most to you?</label>
-            <p style="font-size:13px;color:var(--text-secondary);margin-bottom:10px;">Describe your health goals, lifestyle, and what you want to optimize. The AI will tailor its analysis and recommendations around your priorities.</p>
-            <textarea class="modal-paste-textarea" id="goals-narrative" style="min-height:110px;" placeholder="e.g. I'm a busy physician in my 50s who wants to stay sharp at work, be present for my kids, and play golf into my 70s. I have some nagging low back pain and want to understand what longevity steps make the most sense given my schedule and budget..."></textarea>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px;">
-              <div class="modal-field-group">
-                <label for="goals-mental-health">Mental Health / Wellbeing (1–10)</label>
-                <input type="number" id="goals-mental-health" min="1" max="10" placeholder="7" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:14px;">
-                <div class="modal-input-hint">Self-rated: energy, mood, stress, sleep quality</div>
-              </div>
-              <div class="modal-field-group">
-                <label for="goals-cancer-screening">Cancer Screening (1–10)</label>
-                <input type="number" id="goals-cancer-screening" min="1" max="10" placeholder="7" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:14px;">
-                <div class="modal-input-hint">10 = all age-appropriate screenings current</div>
-              </div>
+            <div class="modal-field-group">
+              <label style="font-weight:600">Active Medical Problems</label>
+              <div id="problems-list" style="margin-bottom:8px"></div>
+              <button class="btn-parse" style="font-size:12px;padding:6px 12px" onclick="dataEntry._addListItem('problems-list','problem')">+ Add Problem</button>
             </div>
-            <div class="modal-field-group" style="margin-top:12px;">
-              <label for="goals-pain">Pain / Musculoskeletal Notes</label>
-              <textarea id="goals-pain" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:14px;min-height:60px;resize:vertical;" placeholder="e.g. Right knee pain with stairs, occasional low back tightness after sitting..."></textarea>
+            <div class="modal-field-group" style="margin-top:16px">
+              <label style="font-weight:600">Medications</label>
+              <div id="meds-list" style="margin-bottom:8px"></div>
+              <button class="btn-parse" style="font-size:12px;padding:6px 12px" onclick="dataEntry._addListItem('meds-list','medication')">+ Add Medication</button>
             </div>
-            <div class="modal-field-group" style="margin-top:12px;">
-              <label for="goals-fitness-focus">Fitness Goals</label>
-              <input type="text" id="goals-fitness-focus" placeholder="e.g. Golf, recreational tennis, running a 5K, scuba diving..." style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:14px;">
+            <div class="modal-field-group" style="margin-top:16px">
+              <label style="font-weight:600">Supplements</label>
+              <div id="supps-list" style="margin-bottom:8px"></div>
+              <button class="btn-parse" style="font-size:12px;padding:6px 12px" onclick="dataEntry._addListItem('supps-list','supplement')">+ Add Supplement</button>
             </div>
           </div>`;
-      } else {
-        const defs = BIOMARKER_DEFS.filter(d => d.tab === tab);
+        // Pre-populate from saved data
+        setTimeout(() => this._populateMedHistory(), 50);
+      } else if (tab === 'Vitals') {
+        panel.innerHTML = `
+          <div class="modal-inputs-grid">
+            <div class="modal-input-group">
+              <label>Date Recorded</label>
+              <input type="date" id="vitals-date" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:14px;" value="${new Date().toISOString().slice(0,10)}">
+            </div>
+            <div class="modal-input-group">
+              <label>Weight (lbs)</label>
+              <input type="number" id="vitals-weight" placeholder="180" step="0.1" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:14px;">
+            </div>
+            <div class="modal-input-group">
+              <label>Height — Feet</label>
+              <input type="number" id="vitals-height-ft" placeholder="5" min="4" max="7" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:14px;">
+            </div>
+            <div class="modal-input-group">
+              <label>Height — Inches</label>
+              <input type="number" id="vitals-height-in" placeholder="11" min="0" max="11" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:14px;">
+            </div>
+            <div class="modal-input-group">
+              <label>Blood Pressure — Systolic</label>
+              <input type="number" id="vitals-bp-sys" placeholder="120" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:14px;">
+              <div class="modal-input-hint">Optimal &lt; 120</div>
+            </div>
+            <div class="modal-input-group">
+              <label>Blood Pressure — Diastolic</label>
+              <input type="number" id="vitals-bp-dia" placeholder="78" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:14px;">
+              <div class="modal-input-hint">Optimal &lt; 80</div>
+            </div>
+            <div class="modal-input-group">
+              <label>Resting Heart Rate (bpm)</label>
+              <input type="number" id="vitals-rhr" placeholder="55" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:14px;">
+              <div class="modal-input-hint">Optimal 40–55</div>
+            </div>
+          </div>`;
+      } else if (tab === 'Labs') {
+        const labDefs = BIOMARKER_DEFS.filter(d => d.tab !== 'Fitness'); // exclude wearable fitness
+        panel.innerHTML = `<div class="modal-paste-area" style="margin-bottom:10px">
+          <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+            <div class="modal-field-group" style="margin:0">
+              <label>Lab Draw Date</label>
+              <input type="date" id="lab-date" style="padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:14px;" value="${new Date().toISOString().slice(0,10)}">
+            </div>
+            <div style="margin-top:18px">
+              <button class="btn-mic" onclick="dataEntry._dictateToLabs(this)" title="Dictate lab values">🎤 Dictate</button>
+            </div>
+          </div>
+          <p style="font-size:12px;color:var(--text-secondary);margin-top:6px">HOMA-IR is calculated automatically from Fasting Insulin × Fasting Glucose ÷ 405.</p>
+        </div>`;
         const grid = document.createElement('div');
         grid.className = 'modal-inputs-grid';
-        defs.forEach(def => {
+        labDefs.forEach(def => {
           const group = document.createElement('div');
           group.className = 'modal-input-group';
           group.innerHTML = `
@@ -2090,7 +2425,76 @@ const dataEntry = {
             <div class="modal-input-hint">${def.hint}</div>`;
           grid.appendChild(group);
         });
+        // Add HOMA-IR as read-only calculated field
+        const homaGroup = document.createElement('div');
+        homaGroup.className = 'modal-input-group';
+        homaGroup.innerHTML = `<label>HOMA-IR (calculated)</label>
+          <input type="text" id="bm-homa-display" readonly placeholder="auto-calculated" style="background:var(--bg-body);cursor:not-allowed;width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:14px;">
+          <div class="modal-input-hint">= (Fasting Insulin × Fasting Glucose) ÷ 405</div>`;
+        grid.appendChild(homaGroup);
         panel.appendChild(grid);
+        // Wire HOMA-IR auto-calc in modal
+        setTimeout(() => {
+          ['bm-fasting_insulin','bm-fasting_glucose'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener('input', () => {
+              const ins = parseFloat(document.getElementById('bm-fasting_insulin')?.value) || 0;
+              const glu = parseFloat(document.getElementById('bm-fasting_glucose')?.value) || 0;
+              const disp = document.getElementById('bm-homa-display');
+              if (disp && ins > 0 && glu > 0) disp.value = (ins * glu / 405).toFixed(2);
+              else if (disp) disp.value = '';
+            });
+          });
+        }, 50);
+      } else if (tab === 'Cancer Screening') {
+        const screenings = [
+          { id:'colonoscopy',  label:'Colonoscopy / Colon Cancer Screening' },
+          { id:'mammogram',    label:'Mammogram / Breast Imaging', note:'(female)' },
+          { id:'pap_hpv',      label:'Pap + HPV Cotest', note:'(female)' },
+          { id:'psa',          label:'PSA Screening', note:'(male, age ≥ 40)' },
+          { id:'skin_check',   label:'Skin Cancer Screening (Dermatology)' },
+          { id:'ldct_lung',    label:'Low-Dose CT Lung', note:'(age ≥ 50, smoker)' },
+          { id:'dexa',         label:'DEXA Scan (Bone Density)' },
+        ];
+        panel.innerHTML = `<div class="modal-paste-area">
+          <p style="font-size:13px;color:var(--text-secondary);margin-bottom:14px">Track your age-appropriate cancer screenings. Check the box once completed.</p>
+          ${screenings.map(s => `
+          <div style="display:grid;grid-template-columns:auto 1fr auto auto;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)">
+            <input type="checkbox" id="scr-done-${s.id}" style="width:16px;height:16px;cursor:pointer">
+            <label for="scr-done-${s.id}" style="font-weight:600;cursor:pointer">${s.label} <span style="font-weight:400;color:var(--text-secondary)">${s.note||''}</span></label>
+            <input type="date" id="scr-date-${s.id}" style="padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;">
+            <input type="text" id="scr-result-${s.id}" placeholder="Result / notes" style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;min-width:180px">
+          </div>`).join('')}
+        </div>`;
+      } else if (tab === 'Family History') {
+        panel.innerHTML = `
+          <div class="modal-paste-area">
+            <p style="font-size:13px;color:var(--text-secondary);margin-bottom:14px">Family history shapes your personal risk profile. The AI uses this to contextualize your results.</p>
+            <div class="modal-field-group">
+              <label style="font-weight:600">Cancer History in Family</label>
+              <textarea id="fh-cancer" class="modal-paste-textarea" style="min-height:70px" placeholder="e.g. Father: colon cancer at 58, Mother: breast cancer at 62"></textarea>
+            </div>
+            <div class="modal-field-group" style="margin-top:12px">
+              <label style="font-weight:600">Heart Disease / Metabolic</label>
+              <textarea id="fh-cardiac" class="modal-paste-textarea" style="min-height:70px" placeholder="e.g. Father: heart attack at 55, Type 2 diabetes on mother's side"></textarea>
+            </div>
+            <div class="modal-field-group" style="margin-top:12px">
+              <label style="font-weight:600">Other Notable Conditions</label>
+              <textarea id="fh-other" class="modal-paste-textarea" style="min-height:70px" placeholder="e.g. Alzheimer's in grandparents, autoimmune conditions..."></textarea>
+            </div>
+          </div>`;
+      } else if (tab === 'Paste / Dictate') {
+        panel.innerHTML = `
+          <div class="modal-paste-area">
+            <label for="lab-paste-text" style="font-weight:600">Paste or dictate your lab report text</label>
+            <p style="font-size:13px;color:var(--text-secondary);margin:6px 0 10px">Values parsed here populate the Labs tab automatically.</p>
+            <div style="display:flex;gap:8px;margin-bottom:8px">
+              <button class="btn-mic" onclick="startDictation(document.getElementById('lab-paste-text'), v => document.getElementById('lab-paste-text').value += (document.getElementById('lab-paste-text').value?' ':'')+v, this)" title="Dictate">🎤 Dictate</button>
+            </div>
+            <textarea class="modal-paste-textarea" id="lab-paste-text" placeholder="Paste raw lab text here...&#10;e.g. ApoB 82 mg/dL, LDL 105, Testosterone 620 ng/dL..."></textarea>
+            <button class="btn-parse" onclick="dataEntry.parseLabText()">Parse Values → Labs Tab</button>
+            <div class="parse-result-msg" id="parse-result-msg"></div>
+          </div>`;
       }
       panelsEl.appendChild(panel);
     });
@@ -2131,28 +2535,29 @@ const dataEntry = {
   },
 
   _loadIntoForm() {
+    // Load lab values from localStorage fallback or memory
     const saved = this._loadStorage();
-    if (saved) {
-      if (saved.patientName) document.getElementById('patient-name').value = saved.patientName;
-      if (saved.labDate)     document.getElementById('lab-date').value = saved.labDate;
-      if (saved.values) {
-        Object.entries(saved.values).forEach(([id, val]) => {
-          const inp = document.getElementById('bm-' + id);
-          if (inp && val !== null && val !== undefined && val !== '') {
-            inp.value = val;
-            inp.classList.add('has-value');
-          }
-        });
-      }
+    if (saved && saved.values) {
+      Object.entries(saved.values).forEach(([id, val]) => {
+        const inp = document.getElementById('bm-' + id);
+        if (inp && val !== null && val !== undefined && val !== '') {
+          inp.value = val;
+          inp.classList.add('has-value');
+        }
+      });
     }
-    // Load goals
-    const goals = JSON.parse(localStorage.getItem('healthsa_goals') || '{}');
-    const setVal = (id, v) => { const el = document.getElementById(id); if (el && v) el.value = v; };
-    setVal('goals-narrative',        goals.narrative);
-    setVal('goals-mental-health',    goals.mental_health_score);
-    setVal('goals-cancer-screening', goals.cancer_screening_score);
-    setVal('goals-pain',             goals.pain_notes);
-    setVal('goals-fitness-focus',    goals.fitness_focus);
+    // Load goals from Supabase cache
+    const goals = window._supabaseGoals || {};
+    const setVal = (id, v) => { const el = document.getElementById(id); if (el && v != null) el.value = v; };
+    setVal('goals-physical',     goals.physical_health);
+    setVal('goals-nutrition',    goals.nutrition);
+    setVal('goals-mental',       goals.mental_spiritual);
+    setVal('goals-sexual',       goals.sexual_relationship);
+    setVal('goals-cognitive',    goals.cognitive);
+    setVal('goals-pain',         goals.pain_level);
+    setVal('goals-narrative',    goals.narrative);
+    setVal('goals-fitness-focus',goals.fitness_focus);
+    setVal('goals-pain-notes',   goals.pain_notes);
   },
 
   _loadStorage() {
@@ -2162,10 +2567,9 @@ const dataEntry = {
     } catch { return null; }
   },
 
-  saveData() {
-    const patientName = document.getElementById('patient-name').value.trim();
-    const labDate     = document.getElementById('lab-date').value;
-    const values = {};
+  async saveData() {
+    const labDate = document.getElementById('lab-date')?.value || new Date().toISOString().slice(0,10);
+    const values  = {};
 
     document.querySelectorAll('.modal-inputs-grid input[type="number"]').forEach(inp => {
       const id = inp.dataset.id;
@@ -2173,40 +2577,144 @@ const dataEntry = {
       if (id && v !== '') values[id] = parseFloat(v);
     });
 
-    const payload = { patientName, labDate, values };
-    try {
-      localStorage.setItem(DATA_STORAGE_KEY, JSON.stringify(payload));
-    } catch(e) {
-      alert('Could not save to localStorage: ' + e.message);
+    // Fitness inputs (from Fitness BIOMARKER_DEFS)
+    BIOMARKER_DEFS.filter(d => d.tab === 'Fitness').forEach(def => {
+      const inp = document.getElementById('bm-' + def.id);
+      if (inp && inp.value.trim() !== '') values[def.id] = parseFloat(inp.value);
+    });
+
+    // Apply to in-memory BIOMARKERS + update dashboard
+    this._applyValues(values);
+    this._updateBadge(true, null, labDate);
+
+    // Save goals to Supabase
+    const getEl = id => { const el = document.getElementById(id); return el ? el.value.trim() : ''; };
+    const goalsPayload = {
+      physical_health:    parseInt(getEl('goals-physical'))  || null,
+      nutrition:          parseInt(getEl('goals-nutrition'))  || null,
+      mental_spiritual:   parseInt(getEl('goals-mental'))     || null,
+      sexual_relationship:parseInt(getEl('goals-sexual'))     || null,
+      cognitive:          parseInt(getEl('goals-cognitive'))  || null,
+      pain_level:         parseInt(getEl('goals-pain'))       || null,
+      narrative:          getEl('goals-narrative'),
+      fitness_focus:      getEl('goals-fitness-focus'),
+      pain_notes:         getEl('goals-pain-notes'),
+    };
+
+    if (_supabase && currentUser) {
+      try {
+        // Save lab results
+        const { data: existing } = await _supabase.from('lab_results')
+          .select('id').eq('user_id', currentUser.id).eq('lab_date', labDate).limit(1);
+        if (existing && existing.length > 0) {
+          await _supabase.from('lab_results').update({ values }).eq('id', existing[0].id);
+        } else {
+          await _supabase.from('lab_results').insert({ user_id: currentUser.id, lab_date: labDate, values });
+        }
+
+        // Save goals (upsert by user_id)
+        const { data: existingGoals } = await _supabase.from('user_goals')
+          .select('id').eq('user_id', currentUser.id).limit(1);
+        if (existingGoals && existingGoals.length > 0) {
+          await _supabase.from('user_goals').update({ ...goalsPayload, updated_at: new Date().toISOString() }).eq('id', existingGoals[0].id);
+        } else {
+          await _supabase.from('user_goals').insert({ user_id: currentUser.id, ...goalsPayload });
+        }
+
+        // Save medical history / family history
+        const medPayload = {
+          active_problems:        this._getListItems('problems-list'),
+          medications:            this._getListItems('meds-list'),
+          supplements:            this._getListItems('supps-list'),
+          family_history_cancer:  getEl('fh-cancer'),
+          family_history_cardiac: getEl('fh-cardiac'),
+          family_history_metabolic: getEl('fh-other'),
+        };
+        const { data: existingMed } = await _supabase.from('medical_history')
+          .select('id').eq('user_id', currentUser.id).limit(1);
+        if (existingMed && existingMed.length > 0) {
+          await _supabase.from('medical_history').update(medPayload).eq('id', existingMed[0].id);
+        } else {
+          await _supabase.from('medical_history').insert({ user_id: currentUser.id, ...medPayload });
+        }
+
+        // Save vitals
+        const vitalsDate = getEl('vitals-date') || new Date().toISOString().slice(0,10);
+        const vitalsPayload = {
+          recorded_date: vitalsDate,
+          weight_lbs:    parseFloat(getEl('vitals-weight'))   || null,
+          height_in:     ((parseInt(getEl('vitals-height-ft'))||0)*12) + (parseInt(getEl('vitals-height-in'))||0) || null,
+          bp_systolic:   parseInt(getEl('vitals-bp-sys'))     || null,
+          bp_diastolic:  parseInt(getEl('vitals-bp-dia'))     || null,
+          resting_hr:    parseInt(getEl('vitals-rhr'))        || null,
+        };
+        if (vitalsPayload.weight_lbs || vitalsPayload.bp_systolic) {
+          await _supabase.from('vitals').insert({ user_id: currentUser.id, ...vitalsPayload });
+        }
+
+      } catch(e) {
+        console.warn('Supabase save error:', e);
+        // Fall back to localStorage
+        try { localStorage.setItem(DATA_STORAGE_KEY, JSON.stringify({ labDate, values })); } catch {}
+      }
+    } else {
+      // No Supabase — fall back to localStorage
+      try { localStorage.setItem(DATA_STORAGE_KEY, JSON.stringify({ labDate, values })); } catch {}
     }
 
-    // Save goals
-    const getEl = id => { const el = document.getElementById(id); return el ? el.value.trim() : ''; };
-    const goals = {
-      narrative:             getEl('goals-narrative'),
-      mental_health_score:   getEl('goals-mental-health'),
-      cancer_screening_score:getEl('goals-cancer-screening'),
-      pain_notes:            getEl('goals-pain'),
-      fitness_focus:         getEl('goals-fitness-focus'),
-    };
-    localStorage.setItem('healthsa_goals', JSON.stringify(goals));
-
-    // Apply to BIOMARKERS
-    this._applyValues(values);
-    this._updateBadge(true, patientName, labDate);
+    window._supabaseGoals = goalsPayload;
     this.closeModal();
     dash.refreshAll();
   },
 
+  _getListItems(containerId) {
+    const container = document.getElementById(containerId);
+    if (!container) return [];
+    return Array.from(container.querySelectorAll('input[type="text"]'))
+      .map(i => i.value.trim()).filter(Boolean);
+  },
+
+  _addListItem(containerId, placeholder) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;gap:6px;margin-bottom:6px';
+    row.innerHTML = `<input type="text" placeholder="${placeholder}" style="flex:1;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px">
+      <button onclick="this.parentElement.remove()" style="padding:4px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg-body);cursor:pointer;font-size:13px">✕</button>`;
+    container.appendChild(row);
+  },
+
+  _populateMedHistory() {
+    // Populate from Supabase cache if available (loaded separately)
+  },
+
+  _dictateToLabs(btnEl) {
+    startDictation(null, transcript => {
+      // Feed transcript to paste tab parser
+      const textarea = document.getElementById('lab-paste-text');
+      if (textarea) { textarea.value = transcript; dataEntry.parseLabText(); }
+      else {
+        // Parse directly
+        const tmp = document.createElement('div');
+        document.body.appendChild(tmp);
+        const fakeTextarea = { value: transcript };
+        const savedGet = document.getElementById.bind(document);
+        dataEntry.parseLabText(transcript);
+        document.body.removeChild(tmp);
+      }
+    }, btnEl);
+  },
+
   _applyValues(values) {
-    // Map id -> BIOMARKERS index (keep in sync with BIOMARKERS array order)
+    // Map id -> BIOMARKERS index (33 markers: added ft4@14, vitamin_d@26, ferritin@27)
     const idxMap = {
       apob: 0, ldl_c: 1, hdl_c: 2, triglycerides: 3, hscrp: 4, lp_a: 5,
       total_testosterone: 6, free_testosterone: 7, dhea_s: 8, cortisol_am: 9, free_t3: 10, igf1: 11,
-      tsh: 12, estradiol: 13,
-      hba1c: 14, fasting_insulin: 15, fasting_glucose: 16, homa_ir: 17, uric_acid: 18,
-      alt: 19, ast: 20, ggt: 21, bun: 22, creatinine: 23, egfr: 24,
-      vo2_max: 25, resting_hr: 26, hrv_avg: 27, sleep_score: 28, body_fat_pct: 29
+      tsh: 12, estradiol: 13, ft4: 14,
+      hba1c: 15, fasting_insulin: 16, fasting_glucose: 17, /* homa_ir: 18 calculated */ uric_acid: 19,
+      alt: 20, ast: 21, ggt: 22, bun: 23, creatinine: 24, egfr: 25,
+      vitamin_d: 26, ferritin: 27,
+      vo2_max: 28, resting_hr: 29, hrv_avg: 30, sleep_score: 31, body_fat_pct: 32
     };
     Object.entries(values).forEach(([id, val]) => {
       const idx = idxMap[id];
@@ -2214,6 +2722,12 @@ const dataEntry = {
         BIOMARKERS[idx].current = val;
       }
     });
+    // Auto-calculate HOMA-IR (index 18) from insulin (16) and glucose (17)
+    const insulin = BIOMARKERS[16].current;
+    const glucose = BIOMARKERS[17].current;
+    if (insulin && glucose && insulin > 0 && glucose > 0) {
+      BIOMARKERS[18].current = Math.round((insulin * glucose / 405) * 100) / 100;
+    }
   },
 
   _updateBadge(usingYours, name, date) {
@@ -2233,20 +2747,28 @@ const dataEntry = {
   },
 
   resetToSample() {
-    if (!confirm('Reset all values to sample data? Your saved values will be cleared.')) return;
-    localStorage.removeItem(DATA_STORAGE_KEY);
+    if (!confirm('Reset dashboard to sample data? This only affects what you see — your saved account data is unchanged.')) return;
 
-    // Restore original sample values
-    const samples = [82, 105, 62, 88, 0.8, 28, 620, 14.2, 285, 16, 3.4, 168, 5.3, 6.2, 89, 1.38, 5.2, 48, 52, 72, 76, 18];
-    samples.forEach((v, i) => { BIOMARKERS[i].current = v; });
+    // Restore original sample values (33 markers)
+    const samples = [
+      82, 105, 62, 88, 0.8, 28,                    // CV
+      620, 14.2, 285, 16, 3.4, 168, 1.8, 22, 1.2,  // Hormonal (+ft4)
+      5.3, 6.2, 89, 1.38, 5.2,                       // Metabolic core
+      22, 24, 18,                                     // Liver
+      16, 0.95, 92,                                   // Renal
+      42, 85,                                         // Vitamin D, Ferritin
+      48, 52, 72, 76, 18                              // Fitness
+    ];
+    samples.forEach((v, i) => { if (BIOMARKERS[i]) BIOMARKERS[i].current = v; });
 
     this._updateBadge(false);
     this.closeModal();
     dash.refreshAll();
   },
 
-  parseLabText() {
-    const text = document.getElementById('lab-paste-text').value;
+  parseLabText(overrideText) {
+    const textarea = document.getElementById('lab-paste-text');
+    const text = overrideText || (textarea ? textarea.value : '');
     const patterns = [
       { id: 'apob',               re: /apob[^0-9]*(\d+\.?\d*)/i },
       { id: 'ldl_c',              re: /ldl[\-\s]?c?[^0-9]*(\d+\.?\d*)/i },
@@ -2263,8 +2785,18 @@ const dataEntry = {
       { id: 'hba1c',              re: /hba1c[^0-9]*(\d+\.?\d*)/i },
       { id: 'fasting_insulin',    re: /fasting\s+insulin[^0-9]*(\d+\.?\d*)/i },
       { id: 'fasting_glucose',    re: /fasting\s+glucose[^0-9]*(\d+\.?\d*)/i },
-      { id: 'homa_ir',            re: /homa[\-\s]?ir[^0-9]*(\d+\.?\d*)/i },
-      { id: 'uric_acid',          re: /uric\s+acid[^0-9]*(\d+\.?\d*)/i },
+      { id: 'uric_acid',  re: /uric\s+acid[^0-9]*(\d+\.?\d*)/i },
+      { id: 'ft4',        re: /free\s+t4|ft4[^0-9]*(\d+\.?\d*)/i },
+      { id: 'vitamin_d',  re: /vitamin\s+d[\s,;(25-oh)]*[^0-9]*(\d+\.?\d*)/i },
+      { id: 'ferritin',   re: /ferritin[^0-9]*(\d+\.?\d*)/i },
+      { id: 'alt',        re: /\balt\b[^0-9]*(\d+\.?\d*)/i },
+      { id: 'ast',        re: /\bast\b[^0-9]*(\d+\.?\d*)/i },
+      { id: 'ggt',        re: /\bggt\b[^0-9]*(\d+\.?\d*)/i },
+      { id: 'bun',        re: /\bbun\b[^0-9]*(\d+\.?\d*)/i },
+      { id: 'creatinine', re: /creatinine[^0-9]*(\d+\.?\d*)/i },
+      { id: 'egfr',       re: /egfr[^0-9]*(\d+\.?\d*)/i },
+      { id: 'tsh',        re: /\btsh\b[^0-9]*(\d+\.?\d*)/i },
+      { id: 'estradiol',  re: /estradiol[^0-9]*(\d+\.?\d*)/i },
     ];
     let found = 0;
     patterns.forEach(({ id, re }) => {
@@ -2360,14 +2892,16 @@ dataEntry.init();
 
   function buildSystemPrompt(biomarkers) {
     const bmBlock = buildBiomarkerPromptBlock(biomarkers);
-    const goals = JSON.parse(localStorage.getItem('healthsa_goals') || '{}');
+    const goals = window._supabaseGoals || JSON.parse(localStorage.getItem('healthsa_goals') || '{}');
     const goalsBlock = (goals.narrative || goals.pain_notes || goals.fitness_focus) ? `
 ## Patient Goals & Context
 ${goals.narrative ? `**What matters most:** ${goals.narrative}` : ''}
 ${goals.fitness_focus ? `**Fitness goals:** ${goals.fitness_focus}` : ''}
 ${goals.pain_notes ? `**Pain / musculoskeletal:** ${goals.pain_notes}` : ''}
-${goals.mental_health_score ? `**Self-rated mental health/wellbeing:** ${goals.mental_health_score}/10` : ''}
-${goals.cancer_screening_score ? `**Cancer screening currency:** ${goals.cancer_screening_score}/10` : ''}
+${goals.mental_spiritual ? `**Self-rated mental & spiritual health:** ${goals.mental_spiritual}/10` : ''}
+${goals.pain_level ? `**Pain level (1=none, 10=severe):** ${goals.pain_level}/10` : ''}
+${goals.physical_health ? `**Physical health self-rating:** ${goals.physical_health}/10` : ''}
+${goals.cognitive ? `**Cognitive health self-rating:** ${goals.cognitive}/10` : ''}
 ` : '';
 
     return `You are Health SA — a knowledgeable health advisor helping a patient understand their biomarker lab results in the context of healthspan optimization and longevity medicine. You are NOT a doctor or licensed medical professional.
@@ -2508,27 +3042,6 @@ Keep language accessible but not dumbed-down — this person is health-literate 
 
   // ── aiPanel object ───────────────────────────────────────────────────────────
   window.aiPanel = {
-
-    _unlockPanel() {
-      $('aiGate').style.display = 'none';
-      $('aiPanelContent').classList.add('unlocked');
-    },
-
-    checkCode() {
-      const input = $('aiGateInput');
-      const errorEl = $('aiGateError');
-      const entered = input.value.trim().toUpperCase();
-      if (entered !== ACCESS_CODE) {
-        errorEl.textContent = 'Incorrect code — please try again.';
-        input.classList.add('error');
-        setTimeout(() => input.classList.remove('error'), 400);
-        input.select();
-        return;
-      }
-      localStorage.setItem(GATE_STORE_KEY, '1');
-      errorEl.textContent = '';
-      this._unlockPanel();
-    },
 
     setLoading(visible, text) {
       const loading = $('aiLoading');
@@ -2697,10 +3210,7 @@ Keep language accessible but not dumbed-down — this person is health-literate 
     },
 
     init() {
-      // Auto-unlock if previously authenticated
-      if (localStorage.getItem(GATE_STORE_KEY) === '1') {
-        this._unlockPanel();
-      }
+      // Panel is always unlocked — access controlled by Supabase session
     }
   };
 
@@ -2712,6 +3222,15 @@ Keep language accessible but not dumbed-down — this person is health-literate 
   }
 
 })();
+</script>
+
+<script>
+// Boot auth (runs after all other scripts have defined dash, dataEntry, etc.)
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initAuth);
+} else {
+  initAuth();
+}
 </script>
 </body>
 </html>
