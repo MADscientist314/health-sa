@@ -2,10 +2,865 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta http-equiv="refresh" content="0; url=health_sa_dashboard.html">
-  <title>Health SA Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Health SA — Your Personal Healthspan Advisor</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <style>
+    :root {
+      --bg-body: #f0f4f8;
+      --bg-card: #ffffff;
+      --bg-header: #1a4a5e;
+      --bg-header-dark: #12374a;
+      --text-primary: #1a2c3d;
+      --text-secondary: #5a7080;
+      --text-on-dark: #ffffff;
+      --text-muted-dark: rgba(255,255,255,0.7);
+      --accent: #2a9d8f;
+      --accent-light: #e0f4f2;
+      --accent-dark: #1e7268;
+      --border: #dee2e6;
+      --shadow: 0 2px 8px rgba(0,0,0,0.08);
+      --radius: 10px;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+      background: var(--bg-body);
+      color: var(--text-primary);
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    a { color: inherit; text-decoration: none; }
+
+    /* ── Nav ── */
+    .nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: var(--bg-header);
+      padding: 0 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 64px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.18);
+    }
+
+    .nav-brand { display: flex; align-items: center; gap: 12px; }
+
+    .brand-mark {
+      width: 38px; height: 38px;
+      background: var(--accent);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 800; color: #fff;
+      letter-spacing: -0.5px; flex-shrink: 0;
+    }
+
+    .brand-name { font-size: 17px; font-weight: 700; color: var(--text-on-dark); }
+    .brand-tagline { font-size: 11px; color: var(--text-muted-dark); }
+
+    .nav-actions { display: flex; align-items: center; gap: 12px; }
+
+    .btn-nav-login {
+      padding: 8px 18px;
+      background: transparent; color: var(--text-on-dark);
+      border: 1.5px solid rgba(255,255,255,0.35);
+      border-radius: 7px; font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .btn-nav-login:hover { background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.6); }
+
+    .btn-nav-cta {
+      padding: 8px 20px;
+      background: var(--accent); color: #fff; border: none;
+      border-radius: 7px; font-size: 13px; font-weight: 700;
+      cursor: pointer; transition: background 0.15s, transform 0.1s;
+      box-shadow: 0 2px 8px rgba(42,157,143,0.45);
+    }
+    .btn-nav-cta:hover { background: var(--accent-dark); }
+    .btn-nav-cta:active { transform: scale(0.97); }
+
+    /* ── Hero ── */
+    .hero {
+      background: linear-gradient(160deg, var(--bg-header) 0%, #1e5c75 50%, #2a7a6a 100%);
+      padding: 100px 32px 90px;
+      text-align: center;
+      position: relative; overflow: hidden;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Ccircle cx='30' cy='30' r='1.5' fill='rgba(255,255,255,0.04)'/%3E%3C/svg%3E");
+      pointer-events: none;
+    }
+
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(42,157,143,0.25);
+      border: 1px solid rgba(42,157,143,0.5);
+      color: #7ee8de;
+      font-size: 12px; font-weight: 700; letter-spacing: 0.5px;
+      padding: 5px 14px; border-radius: 20px;
+      margin-bottom: 24px; text-transform: uppercase;
+    }
+
+    .hero h1 {
+      font-size: clamp(32px, 5vw, 54px);
+      font-weight: 800; color: #fff;
+      line-height: 1.15; margin-bottom: 20px;
+      max-width: 760px; margin-left: auto; margin-right: auto;
+    }
+
+    .hero h1 .accent { color: #7ee8de; }
+
+    .hero-subhead {
+      font-size: clamp(16px, 2vw, 19px);
+      color: rgba(255,255,255,0.78);
+      max-width: 580px; margin: 0 auto 40px; line-height: 1.6;
+    }
+
+    .hero-actions {
+      display: flex; gap: 14px;
+      justify-content: center; flex-wrap: wrap;
+    }
+
+    .btn-hero-primary {
+      padding: 15px 34px;
+      background: var(--accent); color: #fff; border: none;
+      border-radius: 9px; font-size: 16px; font-weight: 700;
+      cursor: pointer; transition: background 0.15s, transform 0.1s;
+      box-shadow: 0 4px 16px rgba(42,157,143,0.5);
+    }
+    .btn-hero-primary:hover { background: var(--accent-dark); }
+    .btn-hero-primary:active { transform: scale(0.97); }
+
+    .btn-hero-secondary {
+      padding: 15px 34px;
+      background: transparent; color: #fff;
+      border: 2px solid rgba(255,255,255,0.4);
+      border-radius: 9px; font-size: 16px; font-weight: 600;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .btn-hero-secondary:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.7); }
+
+    .hero-stat-row {
+      display: flex; justify-content: center;
+      gap: 48px; margin-top: 64px; flex-wrap: wrap;
+    }
+
+    .hero-stat { text-align: center; }
+    .hero-stat-val { font-size: 32px; font-weight: 800; color: #7ee8de; display: block; }
+    .hero-stat-label { font-size: 13px; color: rgba(255,255,255,0.65); margin-top: 2px; }
+
+    /* ── Section ── */
+    .section { padding: 80px 32px; max-width: 1200px; margin: 0 auto; }
+    .section-label { font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; }
+    .section-title { font-size: clamp(26px, 3vw, 36px); font-weight: 800; color: var(--text-primary); margin-bottom: 14px; line-height: 1.2; }
+    .section-subhead { font-size: 17px; color: var(--text-secondary); max-width: 580px; margin-bottom: 52px; }
+
+    /* ── Features ── */
+    .features-bg { background: var(--bg-card); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+
+    .features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; }
+
+    .feature-card {
+      padding: 30px 26px; background: var(--bg-body);
+      border-radius: var(--radius); border: 1px solid var(--border);
+      transition: box-shadow 0.2s, transform 0.2s;
+    }
+    .feature-card:hover { box-shadow: 0 6px 24px rgba(0,0,0,0.09); transform: translateY(-2px); }
+
+    .feature-icon {
+      width: 48px; height: 48px; background: var(--accent-light);
+      border-radius: 10px; display: flex; align-items: center; justify-content: center;
+      margin-bottom: 16px;
+    }
+    .feature-icon svg { width: 24px; height: 24px; fill: var(--accent); }
+
+    .feature-title { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
+    .feature-desc { font-size: 14px; color: var(--text-secondary); line-height: 1.65; }
+
+    .feature-list {
+      margin-top: 14px; padding-top: 14px;
+      border-top: 1px solid var(--border);
+      list-style: none; display: flex; flex-direction: column; gap: 5px;
+    }
+    .feature-list li { font-size: 13px; color: var(--text-secondary); display: flex; align-items: center; gap: 7px; }
+    .feature-list li::before { content: '✓'; color: var(--accent); font-weight: 700; font-size: 12px; }
+
+    /* ── Steps ── */
+    .steps-grid {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px;
+      position: relative;
+    }
+    .steps-grid::before {
+      content: ''; position: absolute;
+      top: 28px; left: calc(12.5% + 16px); right: calc(12.5% + 16px);
+      height: 2px; background: linear-gradient(90deg, var(--accent), var(--accent-dark)); opacity: 0.25;
+    }
+
+    .step { text-align: center; padding: 20px 14px; }
+    .step-num {
+      width: 56px; height: 56px; background: var(--accent); border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; font-weight: 800; color: #fff;
+      margin: 0 auto 14px; box-shadow: 0 4px 14px rgba(42,157,143,0.4);
+    }
+    .step-title { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+    .step-desc { font-size: 13px; color: var(--text-secondary); }
+
+    /* ── Pricing ── */
+    .pricing-bg { background: var(--bg-header); }
+    .pricing-bg .section-label { color: #7ee8de; }
+    .pricing-bg .section-title { color: #fff; }
+    .pricing-bg .section-subhead { color: rgba(255,255,255,0.65); }
+
+    .pricing-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; align-items: start; }
+
+    .pricing-card {
+      background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 14px; padding: 30px 26px;
+      position: relative; transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .pricing-card:hover { transform: translateY(-3px); box-shadow: 0 12px 36px rgba(0,0,0,0.25); }
+    .pricing-card.featured { background: rgba(42,157,143,0.18); border-color: rgba(42,157,143,0.6); box-shadow: 0 0 0 2px rgba(42,157,143,0.4); }
+
+    .pricing-badge {
+      position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+      background: var(--accent); color: #fff;
+      font-size: 11px; font-weight: 700; letter-spacing: 0.5px;
+      padding: 4px 14px; border-radius: 20px; text-transform: uppercase; white-space: nowrap;
+    }
+
+    .veterans-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2);
+      color: #ffd977; font-size: 11px; font-weight: 700;
+      padding: 3px 10px; border-radius: 20px; margin-bottom: 14px;
+    }
+
+    .pricing-tier { font-size: 11px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; color: rgba(255,255,255,0.5); margin-bottom: 8px; }
+    .pricing-name { font-size: 22px; font-weight: 800; color: #fff; margin-bottom: 6px; }
+    .pricing-price { display: flex; align-items: baseline; gap: 4px; margin-bottom: 8px; }
+    .pricing-amount { font-size: 36px; font-weight: 800; color: #fff; }
+    .pricing-period { font-size: 14px; color: rgba(255,255,255,0.5); }
+    .pricing-desc { font-size: 13px; color: rgba(255,255,255,0.62); margin-bottom: 20px; line-height: 1.6; }
+    .pricing-divider { border: none; border-top: 1px solid rgba(255,255,255,0.12); margin-bottom: 18px; }
+
+    .pricing-features { list-style: none; display: flex; flex-direction: column; gap: 9px; margin-bottom: 24px; }
+    .pricing-features li { font-size: 13px; color: rgba(255,255,255,0.75); display: flex; align-items: flex-start; gap: 8px; }
+    .pricing-features li .chk { color: #7ee8de; font-weight: 700; font-size: 12px; flex-shrink: 0; margin-top: 2px; }
+    .pricing-features li.dim { color: rgba(255,255,255,0.35); }
+
+    .btn-pricing { width: 100%; padding: 12px; border: none; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.15s; }
+    .btn-pricing-primary { background: var(--accent); color: #fff; box-shadow: 0 3px 10px rgba(42,157,143,0.45); }
+    .btn-pricing-primary:hover { background: var(--accent-dark); }
+    .btn-pricing-outline { background: transparent; color: rgba(255,255,255,0.8); border: 1.5px solid rgba(255,255,255,0.3); }
+    .btn-pricing-outline:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.6); }
+
+    /* ── Disclaimer Strip ── */
+    .disclaimer-strip {
+      background: var(--bg-card);
+      border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+    }
+    .disclaimer-inner {
+      max-width: 900px; margin: 0 auto; padding: 36px 32px;
+      display: flex; gap: 20px; align-items: flex-start;
+    }
+    .disclaimer-icon {
+      width: 44px; height: 44px; background: var(--accent-light);
+      border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .disclaimer-icon svg { width: 22px; height: 22px; fill: var(--accent); }
+    .disclaimer-text h3 { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+    .disclaimer-text p { font-size: 13px; color: var(--text-secondary); line-height: 1.7; }
+
+    /* ── Footer ── */
+    .footer { background: var(--bg-header-dark); padding: 40px 32px; text-align: center; }
+    .footer-brand { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 14px; }
+    .footer-name { font-size: 16px; font-weight: 700; color: #fff; }
+    .footer-links { display: flex; justify-content: center; gap: 24px; margin-bottom: 16px; flex-wrap: wrap; }
+    .footer-links a { font-size: 13px; color: rgba(255,255,255,0.5); transition: color 0.15s; }
+    .footer-links a:hover { color: rgba(255,255,255,0.85); }
+    .footer-legal { font-size: 12px; color: rgba(255,255,255,0.3); max-width: 600px; margin: 0 auto; line-height: 1.6; }
+
+    /* ── Auth Modal ── */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+      z-index: 1000; align-items: center; justify-content: center; padding: 20px;
+    }
+    .modal-overlay.open { display: flex; }
+
+    .auth-modal {
+      background: var(--bg-card); border-radius: 16px;
+      width: 100%; max-width: 420px;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.3);
+      animation: modal-in 0.2s ease; overflow: hidden;
+    }
+
+    @keyframes modal-in {
+      from { opacity: 0; transform: translateY(-14px) scale(0.97); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .auth-modal-header {
+      background: var(--bg-header); padding: 20px 24px 18px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .auth-modal-logo { display: flex; align-items: center; gap: 10px; }
+    .auth-modal-title { font-size: 14px; font-weight: 700; color: #fff; }
+    .auth-modal-close {
+      width: 28px; height: 28px; background: rgba(255,255,255,0.1); border: none;
+      border-radius: 6px; color: #fff; font-size: 17px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; transition: background 0.15s;
+    }
+    .auth-modal-close:hover { background: rgba(255,255,255,0.2); }
+
+    .auth-tabs { display: flex; border-bottom: 2px solid var(--border); padding: 0 24px; }
+    .auth-tab {
+      padding: 13px 16px; border: none; background: none;
+      font-size: 14px; font-weight: 600; color: var(--text-secondary);
+      cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: color 0.15s;
+    }
+    .auth-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    .auth-body { padding: 22px 24px 26px; }
+
+    .auth-form { display: none; flex-direction: column; gap: 13px; }
+    .auth-form.active { display: flex; }
+
+    .auth-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    .form-group { display: flex; flex-direction: column; gap: 4px; }
+    .form-group label { font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.4px; }
+    .form-group input {
+      padding: 10px 12px; border: 1.5px solid var(--border); border-radius: 7px;
+      font-size: 14px; color: var(--text-primary); background: var(--bg-body);
+      outline: none; transition: border-color 0.15s, background 0.15s; font-family: inherit;
+    }
+    .form-group input:focus { border-color: var(--accent); background: #fff; }
+
+    .btn-auth {
+      padding: 13px; background: var(--accent); color: #fff; border: none;
+      border-radius: 8px; font-size: 15px; font-weight: 700; cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+      box-shadow: 0 3px 10px rgba(42,157,143,0.4); margin-top: 2px;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .btn-auth:hover:not(:disabled) { background: var(--accent-dark); }
+    .btn-auth:active:not(:disabled) { transform: scale(0.98); }
+    .btn-auth:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .auth-error {
+      padding: 10px 12px; background: #fff0f0; border: 1px solid #ffcdd2;
+      border-radius: 6px; font-size: 13px; color: #c62828; display: none;
+    }
+    .auth-error.visible { display: block; }
+
+    .auth-success {
+      padding: 10px 12px; background: #e8f5e9; border: 1px solid #c8e6c9;
+      border-radius: 6px; font-size: 13px; color: #2e7d32; display: none;
+    }
+    .auth-success.visible { display: block; }
+
+    .auth-forgot { text-align: right; margin-top: -5px; }
+    .auth-forgot button { background: none; border: none; font-size: 12px; color: var(--accent); cursor: pointer; }
+    .auth-forgot button:hover { text-decoration: underline; }
+
+    .auth-legal { font-size: 11px; color: var(--text-secondary); text-align: center; line-height: 1.5; }
+
+    .auth-spinner {
+      display: none; width: 18px; height: 18px;
+      border: 2.5px solid rgba(255,255,255,0.4); border-top-color: #fff;
+      border-radius: 50%; animation: spin 0.7s linear infinite; flex-shrink: 0;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Responsive ── */
+    @media (max-width: 900px) {
+      .features-grid, .pricing-grid { grid-template-columns: 1fr; }
+      .steps-grid { grid-template-columns: 1fr 1fr; }
+      .steps-grid::before { display: none; }
+    }
+    @media (max-width: 600px) {
+      .nav { padding: 0 16px; }
+      .hero { padding: 64px 16px 56px; }
+      .hero-stat-row { gap: 24px; }
+      .section { padding: 52px 16px; }
+      .btn-hero-primary, .btn-hero-secondary { width: 100%; }
+      .steps-grid { grid-template-columns: 1fr; }
+      .auth-form-row { grid-template-columns: 1fr; }
+      .disclaimer-inner { flex-direction: column; }
+    }
+  </style>
 </head>
 <body>
-  <p>Redirecting to <a href="health_sa_dashboard.html">Health SA Dashboard</a>…</p>
+
+<!-- ── Navigation ── -->
+<nav class="nav">
+  <div class="nav-brand">
+    <div class="brand-mark">H<span style="font-size:9px">SA</span></div>
+    <div>
+      <div class="brand-name">Health SA</div>
+      <div class="brand-tagline">Healthspan Advisor</div>
+    </div>
+  </div>
+  <div class="nav-actions">
+    <button class="btn-nav-login" onclick="auth.openModal('login')">Log In</button>
+    <button class="btn-nav-cta" onclick="auth.openModal('signup')">Get Started Free</button>
+  </div>
+</nav>
+
+<!-- ── Hero ── -->
+<section class="hero">
+  <div class="hero-badge">🧬 Evidence-Based &bull; Clinician-Developed</div>
+  <h1>Your Health.<br><span class="accent">Your Data.</span> Your Advisor.</h1>
+  <p class="hero-subhead">A 30-marker biomarker panel meets AI-powered analysis — giving you Fountain Life-quality insights at a fraction of the cost. Works alongside your doctor, not instead of them.</p>
+  <div class="hero-actions">
+    <button class="btn-hero-primary" onclick="auth.openModal('signup')">Get Started Free &rarr;</button>
+    <button class="btn-hero-secondary" onclick="document.getElementById('features').scrollIntoView({behavior:'smooth'})">See How It Works</button>
+  </div>
+  <div class="hero-stat-row">
+    <div class="hero-stat">
+      <span class="hero-stat-val">30</span>
+      <span class="hero-stat-label">Biomarkers tracked</span>
+    </div>
+    <div class="hero-stat">
+      <span class="hero-stat-val">6</span>
+      <span class="hero-stat-label">Health domains</span>
+    </div>
+    <div class="hero-stat">
+      <span class="hero-stat-val">100%</span>
+      <span class="hero-stat-label">Your data stays yours</span>
+    </div>
+  </div>
+</section>
+
+<!-- ── Features ── -->
+<div class="features-bg" id="features">
+  <div class="section">
+    <div class="section-label">What You Get</div>
+    <div class="section-title">Built with clinicians. Designed for everyone.</div>
+    <p class="section-subhead">Everything Fountain Life offers — without the $3,500/year price tag. Accessible, AI-powered, and built to work alongside your doctor.</p>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 3c1.93 0 3.5 1.57 3.5 3.5S13.93 13 12 13s-3.5-1.57-3.5-3.5S10.07 6 12 6zm7 13H5v-.23c0-.62.28-1.2.76-1.58C7.47 15.82 9.64 15 12 15s4.53.82 6.24 2.19c.48.38.76.97.76 1.58V19z"/></svg>
+        </div>
+        <div class="feature-title">30-Marker Biomarker Panel</div>
+        <div class="feature-desc">Comprehensive lab tracking across cardiovascular, hormonal, metabolic, and fitness domains — with longevity-optimized reference ranges, not just "normal."</div>
+        <ul class="feature-list">
+          <li>ApoB, Lp(a), hsCRP &mdash; cardiovascular risk</li>
+          <li>Testosterone, IGF-1, DHEA-S &mdash; hormonal health</li>
+          <li>HOMA-IR, HbA1c, liver + renal panel</li>
+          <li>VO&sup2; max, HRV, sleep score tracking</li>
+        </ul>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/></svg>
+        </div>
+        <div class="feature-title">AI Health Advisor</div>
+        <div class="feature-desc">Powered by Claude — your AI advisor analyzes your full panel, explains what each marker means in plain language, and highlights your top optimization levers.</div>
+        <ul class="feature-list">
+          <li>Personalized to your goals and history</li>
+          <li>Follow-up chat for deeper questions</li>
+          <li>Evidence-based only &mdash; no fringe advice</li>
+          <li>Questions tailored for your next PCP visit</li>
+        </ul>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+        </div>
+        <div class="feature-title">Clinician Ready</div>
+        <div class="feature-desc">Developed with practicing physicians for the gap between annual physicals — structured to complement your PCP, not compete with them.</div>
+        <ul class="feature-list">
+          <li>Your data is secure and private</li>
+          <li>Cancer screening tracker (age &amp; sex-specific)</li>
+          <li>Medical history + medication tracking</li>
+          <li>Shareable report for your next appointment</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── How It Works ── -->
+<div>
+  <div class="section">
+    <div class="section-label">How It Works</div>
+    <div class="section-title">From labs to insights in minutes</div>
+    <p class="section-subhead">No complex setup. Paste your lab text, dictate values by voice, or enter manually. Your personalized healthspan analysis is ready in seconds.</p>
+    <div class="steps-grid">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-title">Create your account</div>
+        <div class="step-desc">Sign up free. Your data is encrypted and belongs only to you.</div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-title">Enter your labs</div>
+        <div class="step-desc">Paste lab text, use voice dictation, or type values manually. Any lab format works.</div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-title">Share your goals</div>
+        <div class="step-desc">Tell the AI what matters — longevity, performance, pain, family history. It tailors everything to you.</div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-title">Get your analysis</div>
+        <div class="step-desc">A structured, personalized report with your strengths, priorities, and questions for your doctor.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Pricing ── -->
+<div class="pricing-bg" id="pricing">
+  <div class="section">
+    <div class="section-label">Plans</div>
+    <div class="section-title">Start free. Upgrade when it matters.</div>
+    <p class="section-subhead">No hidden fees. No insurance required. Cancel any time. Veterans always receive a discounted or free tier.</p>
+    <div class="pricing-grid">
+
+      <div class="pricing-card">
+        <div class="pricing-tier">Tier 1</div>
+        <div class="veterans-badge">&#11088; Veterans: Free</div>
+        <div class="pricing-name">Essential</div>
+        <div class="pricing-price"><div class="pricing-amount">Free</div></div>
+        <div class="pricing-desc">Track your biomarkers, get AI-powered health summaries, and build your healthspan baseline.</div>
+        <hr class="pricing-divider">
+        <ul class="pricing-features">
+          <li><span class="chk">&#10003;</span> 30-marker biomarker dashboard</li>
+          <li><span class="chk">&#10003;</span> AI health summary &amp; priorities</li>
+          <li><span class="chk">&#10003;</span> Secure, private data storage</li>
+          <li><span class="chk">&#10003;</span> Lab history &amp; trend tracking</li>
+          <li><span class="chk">&#10003;</span> Cancer screening checklist</li>
+          <li class="dim"><span class="chk">&ndash;</span> Clinician review</li>
+          <li class="dim"><span class="chk">&ndash;</span> Practice integration</li>
+        </ul>
+        <button class="btn-pricing btn-pricing-outline" onclick="auth.openModal('signup')">Get Started Free</button>
+      </div>
+
+      <div class="pricing-card featured">
+        <div class="pricing-badge">Most Popular</div>
+        <div class="pricing-tier">Tier 2</div>
+        <div class="pricing-name">Practice</div>
+        <div class="pricing-price">
+          <div class="pricing-amount">$49</div>
+          <div class="pricing-period">/month</div>
+        </div>
+        <div class="pricing-desc">White-labeled for clinics and concierge practices. Extend your care between visits without adding staff.</div>
+        <hr class="pricing-divider">
+        <ul class="pricing-features">
+          <li><span class="chk">&#10003;</span> Everything in Essential</li>
+          <li><span class="chk">&#10003;</span> Practice branding &amp; customization</li>
+          <li><span class="chk">&#10003;</span> Multi-patient management</li>
+          <li><span class="chk">&#10003;</span> Women's panel &amp; sex-specific ranges</li>
+          <li><span class="chk">&#10003;</span> Detailed clinician-facing reports</li>
+          <li><span class="chk">&#10003;</span> Priority AI analysis</li>
+          <li class="dim"><span class="chk">&ndash;</span> 1-on-1 clinician consult</li>
+        </ul>
+        <button class="btn-pricing btn-pricing-primary" onclick="auth.openModal('signup')">Start Practice Trial</button>
+      </div>
+
+      <div class="pricing-card">
+        <div class="pricing-tier">Tier 3</div>
+        <div class="pricing-name">Premium</div>
+        <div class="pricing-price">
+          <div class="pricing-amount">$199</div>
+          <div class="pricing-period">/month</div>
+        </div>
+        <div class="pricing-desc">Direct clinician review + personalized consult. The Fountain Life alternative — without the $3,500/year membership.</div>
+        <hr class="pricing-divider">
+        <ul class="pricing-features">
+          <li><span class="chk">&#10003;</span> Everything in Practice</li>
+          <li><span class="chk">&#10003;</span> Quarterly clinician review</li>
+          <li><span class="chk">&#10003;</span> Personalized 30-min video consult</li>
+          <li><span class="chk">&#10003;</span> Affiliate referral network</li>
+          <li><span class="chk">&#10003;</span> Priority support + early access</li>
+          <li><span class="chk">&#10003;</span> Family account (up to 4)</li>
+          <li><span class="chk">&#10003;</span> Annual trend report</li>
+        </ul>
+        <button class="btn-pricing btn-pricing-outline" onclick="auth.openModal('signup')">Join Waitlist</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ── Disclaimer ── -->
+<div class="disclaimer-strip">
+  <div class="disclaimer-inner">
+    <div class="disclaimer-icon">
+      <svg viewBox="0 0 24 24"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+    </div>
+    <div class="disclaimer-text">
+      <h3>Health SA is an educational tool, not a medical provider</h3>
+      <p>Health SA provides biomarker tracking and AI-powered education to help you understand your lab results. It is not a licensed medical service, does not provide diagnoses, and does not replace your primary care physician. All AI insights are educational only. Biomarker data stays on your device — when AI analysis is requested, de-identified values are transmitted transiently to our AI provider; no identity information is stored by Health SA.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ── Footer ── -->
+<footer class="footer">
+  <div class="footer-brand">
+    <div class="brand-mark" style="width:30px;height:30px;font-size:10px">H<span style="font-size:8px">SA</span></div>
+    <div class="footer-name">Health SA</div>
+  </div>
+  <div class="footer-links">
+    <a href="#features">Features</a>
+    <a href="#pricing">Pricing</a>
+    <a href="#" onclick="auth.openModal('login');return false;">Log In</a>
+    <a href="#" onclick="auth.openModal('signup');return false;">Sign Up</a>
+  </div>
+  <div class="footer-legal">
+    &copy; 2026 Health SA. All rights reserved. This platform is for educational purposes only and is not intended to diagnose, treat, cure, or prevent any disease or health condition. Always consult your physician before making health decisions.
+  </div>
+</footer>
+
+<!-- ── Auth Modal ── -->
+<div class="modal-overlay" id="auth-modal" onclick="auth.handleOverlayClick(event)">
+  <div class="auth-modal" role="dialog" aria-modal="true" aria-labelledby="auth-title">
+
+    <div class="auth-modal-header">
+      <div class="auth-modal-logo">
+        <div class="brand-mark" style="width:30px;height:30px;font-size:10px">H<span style="font-size:8px">SA</span></div>
+        <span class="auth-modal-title" id="auth-title">Health SA</span>
+      </div>
+      <button class="auth-modal-close" onclick="auth.closeModal()" aria-label="Close">&times;</button>
+    </div>
+
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tab-login" onclick="auth.switchTab('login')">Log In</button>
+      <button class="auth-tab" id="tab-signup" onclick="auth.switchTab('signup')">Create Account</button>
+    </div>
+
+    <div class="auth-body">
+      <div class="auth-error" id="auth-error"></div>
+      <div class="auth-success" id="auth-success"></div>
+
+      <!-- Login -->
+      <form class="auth-form active" id="form-login" onsubmit="auth.login(event)">
+        <div class="form-group">
+          <label for="login-email">Email</label>
+          <input type="email" id="login-email" placeholder="you@example.com" required autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label for="login-password">Password</label>
+          <input type="password" id="login-password" placeholder="Your password" required autocomplete="current-password">
+        </div>
+        <div class="auth-forgot">
+          <button type="button" onclick="auth.forgotPassword()">Forgot password?</button>
+        </div>
+        <button type="submit" class="btn-auth" id="btn-login">
+          <div class="auth-spinner" id="spinner-login"></div>
+          <span id="btn-login-text">Log In to Dashboard</span>
+        </button>
+      </form>
+
+      <!-- Signup -->
+      <form class="auth-form" id="form-signup" onsubmit="auth.signup(event)">
+        <div class="auth-form-row">
+          <div class="form-group">
+            <label for="signup-first">First Name</label>
+            <input type="text" id="signup-first" placeholder="Jane" required autocomplete="given-name">
+          </div>
+          <div class="form-group">
+            <label for="signup-last">Last Name</label>
+            <input type="text" id="signup-last" placeholder="Smith" required autocomplete="family-name">
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="signup-email">Email</label>
+          <input type="email" id="signup-email" placeholder="you@example.com" required autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label for="signup-password">Password</label>
+          <input type="password" id="signup-password" placeholder="At least 8 characters" required minlength="8" autocomplete="new-password">
+        </div>
+        <button type="submit" class="btn-auth" id="btn-signup">
+          <div class="auth-spinner" id="spinner-signup"></div>
+          <span id="btn-signup-text">Create My Account</span>
+        </button>
+        <div class="auth-legal">By creating an account you agree to our terms of service. Your data is private and belongs only to you.</div>
+      </form>
+
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── Supabase Configuration ─────────────────────────────────────────────────
+// Project URL is derived from your project ref (ztubxangxtrbzrhxscqz)
+// Anon key: Supabase Dashboard → Project Settings → API → "anon public"
+const SUPABASE_URL      = 'https://ztubxangxtrbzrhxscqz.supabase.co';
+const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY'; // ← Replace with your anon key
+
+const _supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// ─── Auto-redirect if already logged in ─────────────────────────────────────
+(async function() {
+  try {
+    const { data: { session } } = await _supabase.auth.getSession();
+    if (session) window.location.href = 'health_sa_dashboard.html';
+  } catch(e) { /* ignore — probably placeholder key */ }
+})();
+
+// ─── Auth Controller ─────────────────────────────────────────────────────────
+const auth = {
+
+  openModal(tab = 'login') {
+    document.getElementById('auth-modal').classList.add('open');
+    this.switchTab(tab);
+    this._clearMessages();
+    document.addEventListener('keydown', this._escHandler);
+    setTimeout(() => {
+      const id = tab === 'login' ? 'login-email' : 'signup-first';
+      const el = document.getElementById(id);
+      if (el) el.focus();
+    }, 220);
+  },
+
+  closeModal() {
+    document.getElementById('auth-modal').classList.remove('open');
+    document.removeEventListener('keydown', this._escHandler);
+  },
+
+  handleOverlayClick(e) {
+    if (e.target === document.getElementById('auth-modal')) this.closeModal();
+  },
+
+  _escHandler(e) {
+    if (e.key === 'Escape') auth.closeModal();
+  },
+
+  switchTab(tab) {
+    ['login','signup'].forEach(t => {
+      document.getElementById('tab-' + t).classList.toggle('active', t === tab);
+      document.getElementById('form-' + t).classList.toggle('active', t === tab);
+    });
+    this._clearMessages();
+  },
+
+  _clearMessages() {
+    ['auth-error','auth-success'].forEach(id => {
+      const el = document.getElementById(id);
+      el.textContent = ''; el.classList.remove('visible');
+    });
+  },
+
+  _showError(msg) {
+    const el = document.getElementById('auth-error');
+    el.textContent = msg; el.classList.add('visible');
+  },
+
+  _showSuccess(msg) {
+    const el = document.getElementById('auth-success');
+    el.textContent = msg; el.classList.add('visible');
+  },
+
+  _setLoading(formId, loading) {
+    const btn  = document.getElementById('btn-' + formId);
+    const txt  = document.getElementById('btn-' + formId + '-text');
+    const spin = document.getElementById('spinner-' + formId);
+    btn.disabled = loading;
+    txt.style.display  = loading ? 'none' : '';
+    spin.style.display = loading ? 'block' : 'none';
+  },
+
+  async login(e) {
+    e.preventDefault();
+    this._clearMessages();
+    const email    = document.getElementById('login-email').value.trim();
+    const password = document.getElementById('login-password').value;
+    this._setLoading('login', true);
+    try {
+      const { data, error } = await _supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      // Cache first name for dashboard greeting
+      if (data.user) {
+        try {
+          const { data: profile } = await _supabase.from('profiles')
+            .select('first_name').eq('id', data.user.id).single();
+          if (profile?.first_name) localStorage.setItem('healthsa_first_name', profile.first_name);
+        } catch(_) {}
+      }
+      window.location.href = 'health_sa_dashboard.html';
+    } catch (err) {
+      this._setLoading('login', false);
+      this._showError(err.message || 'Login failed. Please check your credentials and try again.');
+    }
+  },
+
+  async signup(e) {
+    e.preventDefault();
+    this._clearMessages();
+    const firstName = document.getElementById('signup-first').value.trim();
+    const lastName  = document.getElementById('signup-last').value.trim();
+    const email     = document.getElementById('signup-email').value.trim();
+    const password  = document.getElementById('signup-password').value;
+    if (password.length < 8) {
+      this._showError('Password must be at least 8 characters.');
+      return;
+    }
+    this._setLoading('signup', true);
+    try {
+      const { data, error } = await _supabase.auth.signUp({
+        email, password,
+        options: { data: { first_name: firstName, last_name: lastName } }
+      });
+      if (error) throw error;
+
+      if (data.user) {
+        try {
+          await _supabase.from('profiles').upsert({
+            id: data.user.id,
+            first_name: firstName,
+            last_name: lastName
+          });
+          localStorage.setItem('healthsa_first_name', firstName);
+        } catch(_) {}
+      }
+
+      if (data.session) {
+        // Email confirm disabled — go straight to dashboard
+        window.location.href = 'health_sa_dashboard.html';
+      } else {
+        this._setLoading('signup', false);
+        this._showSuccess(`Welcome! Check ${email} for a confirmation link, then log back in.`);
+      }
+    } catch (err) {
+      this._setLoading('signup', false);
+      this._showError(err.message || 'Sign-up failed. Please try again.');
+    }
+  },
+
+  async forgotPassword() {
+    const email = document.getElementById('login-email').value.trim();
+    if (!email) {
+      this._showError('Enter your email address above first, then click "Forgot password?"');
+      return;
+    }
+    try {
+      const { error } = await _supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin + '/health_sa_dashboard.html'
+      });
+      if (error) throw error;
+      this._showSuccess(`Password reset email sent to ${email}.`);
+    } catch (err) {
+      this._showError(err.message || 'Could not send reset email.');
+    }
+  }
+};
+</script>
 </body>
 </html>
