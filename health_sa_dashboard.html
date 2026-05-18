@@ -1334,6 +1334,63 @@
     }
     .btn-reset:hover { background: var(--color-attention-bg); }
 
+    /* ── Onboarding footer ── */
+    .modal-footer-normal  { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; flex-wrap: wrap; }
+    .modal-footer-onboarding { display: none; align-items: center; justify-content: space-between; gap: 12px; width: 100%; }
+    .modal-footer-onboarding.active { display: flex; }
+    .ob-step-label { font-size: 12px; color: var(--text-secondary); font-weight: 600; letter-spacing: .3px; }
+    .btn-ob-next {
+      padding: 10px 22px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 7px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-ob-next:hover { background: #238a7d; }
+    .btn-ob-back {
+      padding: 10px 16px;
+      background: var(--bg-body);
+      color: var(--text-secondary);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-ob-back:hover:not(:disabled) { background: #e9ecef; }
+    .btn-ob-back:disabled { opacity: 0.38; cursor: default; }
+    .btn-ob-skip {
+      padding: 10px 16px;
+      background: none;
+      color: var(--text-secondary);
+      border: none;
+      border-radius: 7px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+    .btn-ob-skip:hover { color: var(--text-primary); }
+    /* Onboarding welcome banner inside modal */
+    .ob-welcome-banner {
+      background: linear-gradient(135deg, #e8f6f4 0%, #f0f8f7 100%);
+      border: 1px solid #b8e6e0;
+      border-radius: 8px;
+      padding: 14px 18px;
+      margin-bottom: 18px;
+      font-size: 13px;
+      color: var(--text-primary);
+      display: none;
+    }
+    .ob-welcome-banner.active { display: block; }
+    .ob-welcome-banner strong { color: var(--accent-dark); }
+
     @media (max-width: 600px) {
       .modal-meta { grid-template-columns: 1fr; }
       .modal-inputs-grid { grid-template-columns: 1fr; }
@@ -1583,14 +1640,32 @@
     </div>
 
     <div class="modal-tabs" id="modal-tabs"></div>
+    <div id="ob-welcome-banner" class="ob-welcome-banner">
+      <strong>👋 Welcome! Let's personalize your dashboard.</strong><br>
+      We'll walk you through a few quick questions — your goals, health history, and any labs you have. Everything saves automatically and you can update it anytime. Skip anything you're not ready for yet.
+    </div>
     <div id="modal-tab-panels"></div>
 
     <div class="modal-footer">
-      <div class="modal-footer-left">
-        <button class="btn-save" onclick="dataEntry.saveData()">Save &amp; Update Dashboard</button>
-        <button class="btn-cancel" onclick="dataEntry.closeModal()">Cancel</button>
+      <!-- Normal mode -->
+      <div id="normal-footer" class="modal-footer-normal">
+        <div class="modal-footer-left">
+          <button class="btn-save" onclick="dataEntry.saveData()">Save &amp; Update Dashboard</button>
+          <button class="btn-cancel" onclick="dataEntry.closeModal()">Cancel</button>
+        </div>
+        <button class="btn-reset" onclick="dataEntry.resetToSample()">Reset to Sample Data</button>
       </div>
-      <button class="btn-reset" onclick="dataEntry.resetToSample()">Reset to Sample Data</button>
+      <!-- Onboarding mode -->
+      <div id="onboarding-footer" class="modal-footer-onboarding">
+        <div style="display:flex;gap:10px;align-items:center">
+          <button id="ob-back-btn" class="btn-ob-back" onclick="dataEntry._prevTab()" disabled>← Back</button>
+          <button class="btn-ob-skip" onclick="dataEntry.skipOnboarding()">Use sample data instead</button>
+        </div>
+        <div style="display:flex;gap:14px;align-items:center">
+          <span id="ob-step-label" class="ob-step-label">Step 1 of 7</span>
+          <button id="ob-next-btn" class="btn-ob-next" onclick="dataEntry._nextTab()">Next →</button>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -1613,20 +1688,27 @@ async function initAuth() {
     if (!session) { window.location.href = 'index.html'; return; }
     currentUser = session.user;
     // Display name from localStorage (set by index.html on login/signup)
-    const firstName = localStorage.getItem('healthsa_first_name') || '';
-    if (firstName) {
-      document.getElementById('user-display-name').textContent = 'Welcome back, ' + firstName;
-    } else {
+    let firstName = localStorage.getItem('healthsa_first_name') || '';
+    if (!firstName) {
       // Try to load from profiles table
       try {
         const { data: profile } = await _supabase.from('profiles').select('first_name').eq('id', currentUser.id).single();
         if (profile?.first_name) {
-          document.getElementById('user-display-name').textContent = 'Welcome back, ' + profile.first_name;
-          localStorage.setItem('healthsa_first_name', profile.first_name);
+          firstName = profile.first_name;
+          localStorage.setItem('healthsa_first_name', firstName);
         }
       } catch {}
     }
-    await loadUserData();
+    const isNewUser = await loadUserData();
+    if (isNewUser) {
+      // New user — show warm welcome and launch onboarding
+      const name = firstName ? `, ${firstName}` : '';
+      document.getElementById('user-display-name').textContent = `Welcome${name}! Let's get started.`;
+      // Small delay so dashboard renders before modal opens
+      setTimeout(() => dataEntry.openModal(true), 350);
+    } else {
+      document.getElementById('user-display-name').textContent = 'Welcome back' + (firstName ? ', ' + firstName : '') + '!';
+    }
   } catch(e) {
     console.warn('Auth check failed:', e);
     // If auth fails (e.g. placeholder key), continue with sample data
@@ -1640,7 +1722,8 @@ async function logout() {
 }
 
 async function loadUserData() {
-  if (!_supabase || !currentUser) return;
+  if (!_supabase || !currentUser) return false;
+  let hasData = false;
   try {
     // Most recent lab results
     const { data: labs } = await _supabase.from('lab_results')
@@ -1650,6 +1733,7 @@ async function loadUserData() {
       dataEntry._applyValues(labs[0].values);
       dataEntry._updateBadge(true, null, labs[0].lab_date);
       if (window.dash) dash.refreshAll();
+      hasData = true;
     }
     // Goals for wellbeing radar
     const { data: goals } = await _supabase.from('user_goals')
@@ -1657,8 +1741,10 @@ async function loadUserData() {
     if (goals && goals.length > 0) {
       window._supabaseGoals = goals[0];
       if (window.dash) dash.updateWellbeingRadar();
+      hasData = true;
     }
   } catch(e) { console.warn('loadUserData error:', e); }
+  return !hasData; // true = new user (no data found)
 }
 
 // ─── TOOLTIP SYSTEM ──────────────────────────────────────────────────────────
@@ -2507,21 +2593,102 @@ const dataEntry = {
     });
   },
 
+  // ── Onboarding state ──────────────────────────────────────────────────────
+  _isOnboarding: false,
+  _obTabIdx: 0,
+  _obTabs: ['My Goals', 'Medical History', 'Vitals', 'Labs', 'Cancer Screening', 'Family History', 'Paste / Dictate'],
+
   _switchTab(tab) {
     document.querySelectorAll('.modal-tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
     document.querySelectorAll('.modal-tab-panel').forEach(p => p.classList.toggle('active', p.dataset.panel === tab));
+    // Keep onboarding index in sync when user clicks tabs manually
+    if (this._isOnboarding) {
+      const idx = this._obTabs.indexOf(tab);
+      if (idx !== -1) { this._obTabIdx = idx; this._refreshObFooter(); }
+    }
   },
 
-  openModal() {
+  openModal(onboarding = false) {
     this._buildModal();
     this._loadIntoForm();
+    this._isOnboarding = onboarding;
+    if (onboarding) {
+      this._obTabIdx = 0;
+      this._switchTab(this._obTabs[0]);
+      // Show onboarding footer, hide normal footer
+      document.getElementById('normal-footer').style.display = 'none';
+      document.getElementById('onboarding-footer').classList.add('active');
+      // Show welcome banner
+      document.getElementById('ob-welcome-banner').classList.add('active');
+      // Update modal subtitle
+      document.querySelector('.modal-subtitle').textContent = 'Step through your profile — takes about 2 minutes. Skip anything you\'re not ready for.';
+      this._refreshObFooter();
+    } else {
+      document.getElementById('normal-footer').style.display = '';
+      document.getElementById('onboarding-footer').classList.remove('active');
+      document.getElementById('ob-welcome-banner').classList.remove('active');
+      document.querySelector('.modal-subtitle').textContent = 'Your profile, goals, and health data — saved to your account';
+    }
     document.getElementById('data-entry-modal').classList.add('open');
     document.addEventListener('keydown', this._escHandler);
   },
 
-  closeModal() {
+  _refreshObFooter() {
+    const idx = this._obTabIdx;
+    const total = this._obTabs.length;
+    document.getElementById('ob-step-label').textContent = `Step ${idx + 1} of ${total}`;
+    document.getElementById('ob-back-btn').disabled = idx === 0;
+    document.getElementById('ob-next-btn').textContent = idx === total - 1 ? 'Finish Setup ✓' : 'Next →';
+  },
+
+  _nextTab() {
+    if (this._obTabIdx < this._obTabs.length - 1) {
+      this._obTabIdx++;
+      this._switchTab(this._obTabs[this._obTabIdx]);
+      this._refreshObFooter();
+    } else {
+      // Last tab — save and exit onboarding
+      this.saveData().then(() => this._finishOnboarding());
+    }
+  },
+
+  _prevTab() {
+    if (this._obTabIdx > 0) {
+      this._obTabIdx--;
+      this._switchTab(this._obTabs[this._obTabIdx]);
+      this._refreshObFooter();
+    }
+  },
+
+  _finishOnboarding() {
+    this._isOnboarding = false;
+    this._dismissModal();
+    // Update greeting to "Welcome back"
+    const el = document.getElementById('user-display-name');
+    const firstName = localStorage.getItem('healthsa_first_name') || '';
+    el.textContent = 'Welcome back' + (firstName ? ', ' + firstName : '') + '!';
+  },
+
+  skipOnboarding() {
+    this._isOnboarding = false;
+    this._dismissModal();
+    // Restore "Welcome back" greeting
+    const el = document.getElementById('user-display-name');
+    const firstName = localStorage.getItem('healthsa_first_name') || '';
+    el.textContent = 'Welcome back' + (firstName ? ', ' + firstName : '') + '!';
+    // Dashboard stays on sample data — badge already reflects that
+  },
+
+  _dismissModal() {
+    // Low-level dismiss — just hides the modal, no state changes
     document.getElementById('data-entry-modal').classList.remove('open');
     document.removeEventListener('keydown', this._escHandler);
+  },
+
+  closeModal() {
+    // If in onboarding, X button / Escape = skip
+    if (this._isOnboarding) { this.skipOnboarding(); return; }
+    this._dismissModal();
   },
 
   handleOverlayClick(e) {
