@@ -707,6 +707,16 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 const _supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+// ─── Auth state listener — handles email confirmation redirect ───────────────
+// When Supabase sends a confirmation email it appends #access_token=... to the
+// redirect URL.  onAuthStateChange fires as SIGNED_IN once Supabase picks up
+// the hash, so we redirect to the dashboard automatically.
+_supabase.auth.onAuthStateChange((event, session) => {
+  if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session) {
+    window.location.href = 'health_sa_dashboard.html';
+  }
+});
+
 // ─── Auto-redirect if already logged in ─────────────────────────────────────
 (async function() {
   try {
