@@ -3001,13 +3001,13 @@ dataEntry.init();
   'use strict';
 
   // ── Constants ────────────────────────────────────────────────────────────────
-  // ── Access code gate ─────────────────────────────────────────────────────────
-  const ACCESS_CODE    = 'HEALTHSA';
-  const GATE_STORE_KEY = 'healthsa_access_granted';
-  const API_URL        = 'https://health-sa-proxy.magicalvacations.workers.dev';
+  // The proxy (worker.js) only answers signed-in Supabase users, and only this model
+  // and max_tokens — change them there too.
+  const API_URL     = 'https://health-sa-proxy.magicalvacations.workers.dev';
   const MODEL       = 'claude-haiku-4-5-20251001';
   const MAX_TOKENS  = 1024;
   const MAX_HISTORY = 6; // messages (pairs of user+assistant)
+  const SIGNED_OUT_MESSAGE = 'Your sign-in has expired. Please sign in again to use the AI analysis.';
 
   // ── State ────────────────────────────────────────────────────────────────────
   let conversationHistory = []; // [{role, content}]
@@ -3157,6 +3157,19 @@ Keep language accessible but not dumbed-down — this person is health-literate 
 
   // ── Core API call ────────────────────────────────────────────────────────────
   async function callClaudeStreaming(messages, onChunk, onDone, onError, systemPrompt) {
+    // The proxy checks the Supabase session. getSession() refreshes an expired token first.
+    let token = null;
+    try {
+      const { data: { session } } = await _supabase.auth.getSession();
+      token = session?.access_token || null;
+    } catch (err) {
+      console.warn('[HealthSA] Session check failed:', err);
+    }
+    if (!token) {
+      onError(SIGNED_OUT_MESSAGE);
+      return;
+    }
+
     let response;
     const requestBody = { model: MODEL, max_tokens: MAX_TOKENS, stream: true, messages };
     if (systemPrompt) requestBody.system = systemPrompt;
@@ -3165,7 +3178,7 @@ Keep language accessible but not dumbed-down — this person is health-literate 
         method: 'POST',
         mode: 'cors',
         headers: {
-          'X-Access-Code': ACCESS_CODE,
+          'Authorization': 'Bearer ' + token,
           'content-type': 'application/json'
         },
         body: JSON.stringify(requestBody)
@@ -3181,14 +3194,14 @@ Keep language accessible but not dumbed-down — this person is health-literate 
     }
 
     if (!response.ok) {
-      let errMsg = `API error ${response.status}`;
+      let errMsg = '';
       try {
         const errBody = await response.json();
-        errMsg = errBody.error?.message || errMsg;
-        if (response.status === 401) errMsg = 'Invalid API key. Please check your key and try again.';
-        if (response.status === 429) errMsg = 'Rate limit reached. Please wait a moment and try again.';
+        errMsg = errBody.error?.message || '';
       } catch {}
-      onError(errMsg);
+      if (response.status === 401) errMsg = SIGNED_OUT_MESSAGE;
+      if (!errMsg && response.status === 429) errMsg = 'Rate limit reached. Please wait a few minutes and try again.';
+      onError(errMsg || `API error ${response.status}`);
       return;
     }
 
@@ -3278,11 +3291,13 @@ Keep language accessible but not dumbed-down — this person is health-literate 
           outputEl.innerHTML = '<p>' + renderMarkdown(fullText) + '</p>';
           $('aiLoading').classList.remove('visible');
 
-          // Store in conversation history for follow-ups
-          conversationHistory.push(
-            { role: 'user', content: 'Please analyze my biomarker results and provide the structured health analysis.' },
-            { role: 'assistant', content: fullText }
-          );
+          // Store in conversation history for follow-ups (the API refuses blank messages)
+          if (fullText.trim()) {
+            conversationHistory.push(
+              { role: 'user', content: 'Please analyze my biomarker results and provide the structured health analysis.' },
+              { role: 'assistant', content: fullText }
+            );
+          }
 
           // Show chat section
           $('aiChatSection').classList.add('visible');
@@ -3333,11 +3348,13 @@ Keep language accessible but not dumbed-down — this person is health-literate 
       history.appendChild(aiBubble);
       history.scrollTop = history.scrollHeight;
 
-      // Trim conversation history to last MAX_HISTORY messages
+      // Trim conversation history to last MAX_HISTORY messages, starting with a user turn
+      // (the API refuses a conversation that starts with the assistant)
       conversationHistory.push({ role: 'user', content: question });
       if (conversationHistory.length > MAX_HISTORY) {
         conversationHistory = conversationHistory.slice(-MAX_HISTORY);
       }
+      while (conversationHistory[0].role !== 'user') conversationHistory.shift();
 
       isStreaming = true;
       sendBtn.disabled = true;
@@ -3357,8 +3374,9 @@ Keep language accessible but not dumbed-down — this person is health-literate 
           aiBubble.innerHTML = '<p>' + renderMarkdown(fullText) + '</p>';
           history.scrollTop = history.scrollHeight;
 
-          // Update history with assistant response
-          conversationHistory.push({ role: 'assistant', content: fullText });
+          // Update history with assistant response; a blank reply drops the question too
+          if (fullText.trim()) conversationHistory.push({ role: 'assistant', content: fullText });
+          else conversationHistory.pop();
           if (conversationHistory.length > MAX_HISTORY) {
             conversationHistory = conversationHistory.slice(-MAX_HISTORY);
           }
