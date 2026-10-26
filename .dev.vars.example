@@ -1,0 +1,5 @@
+# Copy to .dev.vars for `npx wrangler dev` (never commit .dev.vars).
+# A placeholder key is enough for tests/dev-checks.sh, which never reaches Claude.
+ANTHROPIC_API_KEY=sk-ant-placeholder
+# Also allow a dashboard served locally, e.g. `python -m http.server 8000`.
+ALLOWED_ORIGINS=https://madscientist314.github.io,http://localhost:8000

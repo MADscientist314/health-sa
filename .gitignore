@@ -3,6 +3,8 @@
 .encrypted_key.json
 *.env
 .env*
+.dev.vars
+.wrangler/
 nul
 test_cf.sh
 test_worker.sh

@@ -1,0 +1,31 @@
+{
+  "name": "health-sa-proxy",
+  // The Cloudflare account that serves magicalvacations.workers.dev, so a deploy can't land elsewhere
+  // and leave the old open proxy running.
+  "account_id": "86402922a1ab0cd7c5e68f19ce78cd0b",
+  "main": "worker.js",
+  "compatibility_date": "2026-10-01",
+  // The dashboard calls https://health-sa-proxy.magicalvacations.workers.dev.
+  "workers_dev": true,
+  // No per-version URLs: they would keep older versions of the proxy reachable.
+  "preview_urls": false,
+  "observability": { "enabled": true },
+  "vars": {
+    // Comma-separated, exact origins. GitHub Pages serves the dashboard from this one.
+    "ALLOWED_ORIGINS": "https://madscientist314.github.io",
+    "SUPABASE_URL": "https://ztubxangxtrbzrhxscqz.supabase.co",
+    // The public anon key (also in the dashboard's source). Supabase Auth requires it as `apikey`.
+    "SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp0dWJ4YW5neHRyYnpyaHhzY3F6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwMzM0MTgsImV4cCI6MjA5NDYwOTQxOH0.iy9hCNBh4vn35PtoRNYM0mZVcJWneJIr8KlL3a4AoPE"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "health-sa-proxy",
+      // From `npx wrangler d1 create health-sa-proxy` (region WNAM, created 2026-10-26).
+      "database_id": "98da7be4-7697-4bc2-8904-7c600ea43c5b",
+      "migrations_dir": "migrations"
+    }
+  ]
+  // Secret (set with `npx wrangler secret put ANTHROPIC_API_KEY`, never committed):
+  //   ANTHROPIC_API_KEY  the Claude API key
+}
